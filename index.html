@@ -754,17 +754,16 @@ updateAll();
 // 5. Realtime Database ルールを以下に:
 //    { "rules": { "rooms": { "$room": { ".read": true, ".write": true } } } }
 //    ※URLとROOM_IDを知る人は誰でも読み書き可。社外秘運用なら Firebase Auth 導入を推奨
-const FIREBASE_CONFIG = null; /* ←ここに firebaseConfig を貼る 例:
 const FIREBASE_CONFIG = {
-  apiKey: "AIza...",
-  authDomain: "xxx.firebaseapp.com",
-  databaseURL: "https://xxx-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "xxx",
-  storageBucket: "xxx.appspot.com",
-  messagingSenderId: "...",
-  appId: "..."
-}; */
-const ROOM_ID = 'CHANGE-ME-shutoken-2026-07';
+  apiKey: "AIzaSyAcmt7Yir4cZdjTcQ2mcf80xJUm8mxXy-E",
+  authDomain: "event-ledger-shutoken.firebaseapp.com",
+  databaseURL: "https://event-ledger-shutoken-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "event-ledger-shutoken",
+  storageBucket: "event-ledger-shutoken.firebasestorage.app",
+  messagingSenderId: "11921448608",
+  appId: "1:11921448608:web:bc18cff826b568a15b33c5"
+};
+const ROOM_ID = 'shutoken-2026-6ddee46ab67eefec76082fff';
 
 window.__fb = {enabled:false};
 if(FIREBASE_CONFIG && ROOM_ID && !ROOM_ID.startsWith('CHANGE-ME')){
