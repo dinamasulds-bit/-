@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>首都圏支社イベント実績管理簿</title>
 <style>
   body{font-family:"Hiragino Sans","Meiryo",sans-serif;margin:20px;background:#f5f6f8;color:#222;}
@@ -73,6 +74,31 @@
     body{background:#fff;margin:8px;}
     .card{box-shadow:none;}
   }
+  /* 状態列を横スクロール中も固定表示 */
+  th:nth-child(1),td:nth-child(1){position:sticky;left:0;z-index:2;box-shadow:2px 0 3px rgba(0,0,0,.08);}
+  thead th:nth-child(1){z-index:3;}
+  tfoot td:nth-child(1){background:#eef1f6;}
+  /* 簡易表示: 詳細列を隠す */
+  table.simple-view .detail-col{display:none;}
+  @media (max-width:640px){
+    body{margin:8px;}
+    h1{font-size:16px;}
+    h2{font-size:14px;margin:16px 0 6px;}
+    .rules{font-size:11px;padding:8px 10px;line-height:1.6;}
+    .toolbar{gap:6px;}
+    .toolbar label{font-size:12px;}
+    button,select{padding:8px 10px;font-size:13px;min-height:38px;}
+    button.mini-btn{min-height:auto;padding:4px 10px;}
+    .wrap{max-height:70vh;-webkit-overflow-scrolling:touch;}
+    th,td{padding:5px 6px;font-size:11.5px;}
+    .panel{gap:10px;}
+    .card{min-width:100%;padding:12px 14px;}
+    .card input{font-size:16px;}
+    input.dir{font-size:16px;width:80px;}
+    .modal{padding:14px 16px;max-width:96vw;}
+    .modal table input{font-size:16px;width:52px;}
+    .savemsg{display:block;margin-top:4px;}
+  }
 </style>
 </head>
 <body>
@@ -96,6 +122,7 @@
   <button class="sec" onclick="exportCsv()">CSV出力</button>
   <button class="sec" onclick="window.print()">印刷</button>
   <button class="danger" onclick="resetAll()">初期データに戻す</button>
+  <button class="sec" id="simpleBtn" onclick="toggleSimple()">簡易表示</button>
   <span class="savemsg" id="saveMsg"></span>
   <span class="savemsg" id="syncMsg" style="color:#c0392b;">共有: 未接続（ローカルのみ）</span>
 </div>
@@ -106,42 +133,42 @@
     <tr>
       <th rowspan="2">状態</th>
       <th rowspan="2">実施週</th>
-      <th rowspan="2">項番</th>
-      <th rowspan="2">枠</th>
+      <th rowspan="2" class="detail-col">項番</th>
+      <th rowspan="2" class="detail-col">枠</th>
       <th rowspan="2">支店</th>
       <th rowspan="2">施設名</th>
-      <th colspan="2">メインスペース（①週末実施の会場）</th>
-      <th colspan="2">サブスペース（②）</th>
-      <th rowspan="2">備考</th>
-      <th rowspan="2">実施規模</th>
-      <th rowspan="2">①サイズ</th>
-      <th rowspan="2">②サイズ</th>
+      <th colspan="2" class="detail-col">メインスペース（①週末実施の会場）</th>
+      <th colspan="2" class="detail-col">サブスペース（②）</th>
+      <th rowspan="2" class="detail-col">備考</th>
+      <th rowspan="2" class="detail-col">実施規模</th>
+      <th rowspan="2" class="detail-col">①サイズ</th>
+      <th rowspan="2" class="detail-col">②サイズ</th>
       <th rowspan="2">開始日</th>
       <th rowspan="2">終了日</th>
-      <th rowspan="2">実施日数</th>
-      <th rowspan="2">コンテンツ</th>
+      <th rowspan="2" class="detail-col">実施日数</th>
+      <th rowspan="2" class="detail-col">コンテンツ</th>
       <th rowspan="2">委託先</th>
       <th rowspan="2">ディレクター</th>
       <th rowspan="2">目標値</th>
-      <th rowspan="2">休日/日</th>
-      <th rowspan="2">平日/日</th>
+      <th rowspan="2" class="detail-col">休日/日</th>
+      <th rowspan="2" class="detail-col">平日/日</th>
       <th colspan="6" class="grp-actual">実績</th>
       <th rowspan="2" class="grp-rate">達成率<br>(即日)※評価</th>
-      <th rowspan="2" class="grp-rate">達成率<br>(即日+予約)</th>
-      <th rowspan="2" class="grp-rate">dカード<br>付帯率</th>
-      <th rowspan="2" class="grp-rate">光HS同日<br>付帯率</th>
+      <th rowspan="2" class="grp-rate detail-col">達成率<br>(即日+予約)</th>
+      <th rowspan="2" class="grp-rate detail-col">dカード<br>付帯率</th>
+      <th rowspan="2" class="grp-rate detail-col">光HS同日<br>付帯率</th>
       <th rowspan="2" class="grp-rate">ペース<br>(実施中)</th>
       <th rowspan="2">日別<br>入力</th>
     </tr>
     <tr>
-      <th>フロア</th><th>スペース名</th>
-      <th>フロア</th><th>スペース名</th>
+      <th class="detail-col">フロア</th><th class="detail-col">スペース名</th>
+      <th class="detail-col">フロア</th><th class="detail-col">スペース名</th>
       <th class="grp-actual">HS(即日)</th>
       <th class="grp-actual">HS(予約)</th>
-      <th class="grp-actual">HS獲得世帯数<br>(委託先申告)</th>
-      <th class="grp-actual">dカード</th>
-      <th class="grp-actual">光</th>
-      <th class="grp-actual">home5G</th>
+      <th class="grp-actual detail-col">HS獲得世帯数<br>(委託先申告)</th>
+      <th class="grp-actual detail-col">dカード</th>
+      <th class="grp-actual detail-col">光</th>
+      <th class="grp-actual detail-col">home5G</th>
     </tr>
   </thead>
   <tbody></tbody>
@@ -157,9 +184,9 @@
       <td class="num" id="sumHikari"></td>
       <td class="num" id="sumH5g"></td>
       <td class="calc" id="totalRate1"></td>
-      <td class="calc" id="totalRate2"></td>
-      <td class="calc" id="totalCardRate"></td>
-      <td class="calc" id="totalFutai"></td>
+      <td class="calc detail-col" id="totalRate2"></td>
+      <td class="calc detail-col" id="totalCardRate"></td>
+      <td class="calc detail-col" id="totalFutai"></td>
       <td class="calc"></td>
       <td></td>
     </tr>
@@ -268,6 +295,8 @@ const TARGET_IDX = 20;
 const HOL_IDX = 21, WK_IDX = 22;
 const YEAR = 2026;
 const LS_KEY = 'event-ledger-v3';
+const MOBILE_VIEW_KEY = 'event-ledger-mobile-view';
+const DETAIL_COLS = [2,3,6,7,8,9,10,11,12,13,16,17,21,22,25,26,27,28,30,31,32];
 const DAY_FIELDS = [
   {key:'p1', label:'HS(即日)', col:23},
   {key:'p2', label:'HS(予約)', col:24},
@@ -339,6 +368,7 @@ function addRow(data){
       td.oninput = ()=>{updateAll();saveAll();};
       if(data && data[i-1] !== undefined) td.textContent = data[i-1];
     }
+    if(DETAIL_COLS.includes(i)) td.classList.add('detail-col');
     tr.appendChild(td);
   }
   if(data && data[2]==='ランクA') tr.classList.add('rankA');
@@ -531,6 +561,24 @@ function applyFilter(){
     r.style.display = (okW && okB && okS && okD) ? '' : 'none';
   });
   updateAll();
+}
+
+// ===== 簡易表示（モバイル向け列間引き） =====
+function applySimpleView(on){
+  document.getElementById('ledger').classList.toggle('simple-view', on);
+  simpleBtn.textContent = on ? '全項目表示' : '簡易表示';
+  simpleBtn.classList.toggle('sec', !on);
+}
+function toggleSimple(){
+  const on = !document.getElementById('ledger').classList.contains('simple-view');
+  applySimpleView(on);
+  try{ localStorage.setItem(MOBILE_VIEW_KEY, on ? '1' : '0'); }catch(e){}
+}
+function initSimpleView(){
+  let saved = null;
+  try{ saved = localStorage.getItem(MOBILE_VIEW_KEY); }catch(e){}
+  const on = saved !== null ? saved==='1' : window.innerWidth <= 640;
+  applySimpleView(on);
 }
 
 // ===== 日別入力 =====
@@ -739,6 +787,7 @@ function exportCsv(){
 }
 
 loadAll();
+initSimpleView();
 [...new Set(DATA.map(d=>d[0]))].sort().forEach(v=>fWeek.add(new Option(v,v)));
 [...new Set(DATA.map(d=>d[3]))].sort().forEach(v=>fBranch.add(new Option(v,v)));
 updateAll();
