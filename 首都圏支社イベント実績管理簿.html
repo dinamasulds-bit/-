@@ -99,6 +99,11 @@
     .modal table input{font-size:16px;width:52px;}
     .savemsg{display:block;margin-top:4px;}
   }
+  .lockbtn{font-weight:bold;}
+  .lockbtn.locked{background:#fff;color:#8a6d00;border-color:#e6b800;}
+  .lockbtn.unlocked{background:#e3f3e8;color:#1a7a3a;border-color:#1a7a3a;}
+  body.view-only td[contenteditable]{background:#fafbfc;cursor:default;}
+  body.view-only input.dir{cursor:default;}
 </style>
 </head>
 <body>
@@ -117,11 +122,12 @@
   <label>支店: <select id="fBranch" onchange="applyFilter()"><option value="">全て</option></select></label>
   <label>状態: <select id="fStatus" onchange="applyFilter()"><option value="">全て</option><option>開催前</option><option>実施中</option><option>終了</option></select></label>
   <label>ディレクター: <select id="fDirector" onchange="applyFilter()"><option value="">全て</option></select></label>
-  <button onclick="addRow();saveAll()">行追加</button>
+  <button id="addRowBtn" onclick="addRow();saveAll()">行追加</button>
   <button class="sec" onclick="exportCsv()">CSV出力</button>
   <button class="sec" onclick="window.print()">印刷</button>
-  <button class="danger" onclick="resetAll()">初期データに戻す</button>
+  <button class="danger" id="resetBtn" onclick="resetAll()">初期データに戻す</button>
   <button class="sec" id="simpleBtn" onclick="toggleSimple()">簡易表示</button>
+  <button class="lockbtn" id="lockBtn" onclick="onLockBtn()">編集する</button>
   <span class="savemsg" id="saveMsg"></span>
   <span class="savemsg" id="syncMsg" style="color:#c0392b;">共有: 未接続（ローカルのみ）</span>
 </div>
@@ -296,6 +302,40 @@ const YEAR = 2026;
 const LS_KEY = 'event-ledger-v3';
 const MOBILE_VIEW_KEY = 'event-ledger-mobile-view';
 const DETAIL_COLS = [2,3,6,7,8,9,10,11,12,13,16,17,21,22,25,26,27,28,30,31,32];
+const EDIT_UNLOCK_KEY = 'event-ledger-edit-unlocked';
+const EDIT_PASSWORD_HASH = '0d0f9884f6d90bd95500d8d0f9703d92c20d8507dbb7c5ee9eb4db9bcaa3caaf';
+let editUnlocked = false;
+function isEditUnlocked(){ return editUnlocked; }
+async function sha256Hex(text){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function applyLockState(unlocked){
+  editUnlocked = unlocked;
+  document.body.classList.toggle('view-only', !unlocked);
+  document.querySelectorAll('#ledger .editable-cell').forEach(td=>{ td.contentEditable = unlocked; });
+  document.querySelectorAll('#ledger .editable-input').forEach(inp=>{ inp.disabled = !unlocked; });
+  [evMinus, evBilling, evAladinCard, evAladinHikari, addRowBtn, resetBtn].forEach(el=>{ if(el) el.disabled = !unlocked; });
+  lockBtn.textContent = unlocked ? '編集を終了（閲覧のみに戻す）' : '編集する';
+  lockBtn.className = 'lockbtn ' + (unlocked ? 'unlocked' : 'locked');
+}
+async function onLockBtn(){
+  if(editUnlocked){ applyLockState(false); try{ localStorage.removeItem(EDIT_UNLOCK_KEY); }catch(e){} return; }
+  const pw = prompt('編集用パスワードを入力してください（閲覧のみでよければキャンセル）');
+  if(pw===null) return;
+  const hash = await sha256Hex(pw);
+  if(hash === EDIT_PASSWORD_HASH){
+    applyLockState(true);
+    try{ localStorage.setItem(EDIT_UNLOCK_KEY, '1'); }catch(e){}
+  }else{
+    alert('パスワードが違います');
+  }
+}
+function initLockState(){
+  let saved = null;
+  try{ saved = localStorage.getItem(EDIT_UNLOCK_KEY); }catch(e){}
+  editUnlocked = saved === '1';
+}
 const DAY_FIELDS = [
   {key:'p1', label:'HS(即日)', col:23},
   {key:'p2', label:'HS(予約)', col:24},
@@ -355,15 +395,17 @@ function addRow(data){
       td.style.textAlign = 'center';
     }else if(i===DIRECTOR_IDX){
       const inp = document.createElement('input');
-      inp.className = 'dir';
+      inp.className = 'dir editable-input';
       inp.setAttribute('list','dirList');
       inp.placeholder = '名前';
+      inp.disabled = !isEditUnlocked();
       if(data && data[i-1] !== undefined) inp.value = data[i-1];
       inp.oninput = ()=>{updateAll();saveAll();};
       td.appendChild(inp);
     }else{
-      td.contentEditable = true;
-      if(NUM_PLAN.includes(i) || ACTUAL_COLS.includes(i)) td.className = 'num';
+      td.contentEditable = isEditUnlocked();
+      td.classList.add('editable-cell');
+      if(NUM_PLAN.includes(i) || ACTUAL_COLS.includes(i)) td.className += ' num';
       td.oninput = ()=>{updateAll();saveAll();};
       if(data && data[i-1] !== undefined) td.textContent = data[i-1];
     }
@@ -606,7 +648,7 @@ function openDaily(rowIdx){
     const vals = dailyData[key][iso] || {};
     html += `<tr${hol?' class="hol"':''}><td${hol?' class="hol"':''}>${d.getMonth()+1}/${d.getDate()}</td><td${hol?' class="hol"':''}>${wdays[d.getDay()]}</td><td class="num${hol?' hol':''}">${tgt}</td>`;
     DAY_FIELDS.forEach(f=>{
-      html += `<td${hol?' class="hol"':''}><input type="number" min="0" value="${vals[f.key]??''}" oninput="dayInput('${iso}','${f.key}',this.value)"></td>`;
+      html += `<td${hol?' class="hol"':''}><input type="number" min="0" value="${vals[f.key]??''}" oninput="dayInput('${iso}','${f.key}',this.value)"${isEditUnlocked()?'':' disabled'}></td>`;
     });
     html += `<td class="num${hol?' hol':''}" id="dayAch-${iso}"></td></tr>`;
   }
@@ -785,7 +827,9 @@ function exportCsv(){
   URL.revokeObjectURL(a.href);
 }
 
+initLockState();
 loadAll();
+applyLockState(editUnlocked);
 initSimpleView();
 [...new Set(DATA.map(d=>d[0]))].sort().forEach(v=>fWeek.add(new Option(v,v)));
 [...new Set(DATA.map(d=>d[3]))].sort().forEach(v=>fBranch.add(new Option(v,v)));
