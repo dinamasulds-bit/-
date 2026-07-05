@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>首都圏支社イベント実績管理簿</title>
+<style>
+  body{font-family:"Hiragino Sans","Meiryo",sans-serif;margin:20px;background:#f5f6f8;color:#222;}
+  h1{font-size:20px;margin-bottom:4px;}
+  h2{font-size:15px;margin:20px 0 8px;color:#2b4c7e;}
+  .sub{color:#666;font-size:12px;margin-bottom:8px;}
+  .rules{background:#fff;border:1px solid #d0d5dd;border-left:4px solid #2b4c7e;border-radius:4px;padding:10px 14px;font-size:12px;margin-bottom:12px;line-height:1.7;}
+  .rules b{color:#2b4c7e;}
+  .rules .warn{color:#c0392b;}
+  .wrap{overflow-x:auto;max-height:60vh;overflow-y:auto;}
+  table{border-collapse:collapse;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.1);white-space:nowrap;}
+  th,td{border:1px solid #ccc;padding:4px 7px;font-size:12px;text-align:left;}
+  th{background:#2b4c7e;color:#fff;}
+  th.grp-actual{background:#8a5a2b;}
+  th.grp-rate{background:#7a3b56;}
+  tbody tr:nth-child(even) td{background:#fafafa;}
+  td[contenteditable]:focus{background:#fff9db;outline:2px solid #2b4c7e;}
+  .num{text-align:right;}
+  td.calc{background:#eef3ee !important;font-weight:bold;text-align:right;}
+  td.calc.ok{color:#1a7a3a;}
+  td.calc.ng{color:#c0392b;}
+  td.st{font-weight:bold;text-align:center;}
+  td.st.before{background:#eef1f6 !important;color:#666;}
+  td.st.ongoing{background:#fff3cd !important;color:#8a6d00;}
+  td.st.done{background:#e3f3e8 !important;color:#1a7a3a;}
+  input.dir{width:90px;border:1px solid transparent;background:transparent;font-size:12px;font-family:inherit;padding:1px 2px;}
+  input.dir:focus{background:#fff9db;border-color:#2b4c7e;outline:none;}
+  .toolbar{margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  button{padding:6px 14px;font-size:13px;border:1px solid #2b4c7e;background:#2b4c7e;color:#fff;border-radius:4px;cursor:pointer;}
+  button.sec{background:#fff;color:#2b4c7e;}
+  button.danger{background:#fff;color:#c0392b;border-color:#c0392b;}
+  button.mini-btn{padding:2px 8px;font-size:11px;}
+  button:hover{opacity:.85;}
+  select{padding:5px 8px;font-size:13px;border:1px solid #aaa;border-radius:4px;}
+  tfoot td{font-weight:bold;background:#eef1f6;}
+  .rankA td:first-child{border-left:4px solid #e67e22;}
+  .savemsg{font-size:11px;color:#1a7a3a;}
+  /* 評価サマリ */
+  .panel{display:flex;gap:16px;flex-wrap:wrap;}
+  .card{background:#fff;border:1px solid #d0d5dd;border-radius:6px;padding:14px 18px;min-width:300px;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  .card h3{font-size:13px;margin:0 0 10px;padding-bottom:6px;border-bottom:2px solid #2b4c7e;color:#2b4c7e;}
+  .card .row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;gap:16px;}
+  .card .row .v{font-weight:bold;}
+  .card input{width:110px;padding:3px 6px;font-size:13px;text-align:right;border:1px solid #aaa;border-radius:3px;}
+  .pt{font-size:15px;}
+  .ok{color:#1a7a3a;} .ng{color:#c0392b;}
+  .verdict{margin-top:10px;padding:8px 12px;border-radius:4px;font-size:13px;font-weight:bold;background:#eef1f6;}
+  .verdict.ok{background:#e3f3e8;} .verdict.ng{background:#fbe9e7;}
+  /* サマリ表 */
+  .mini th{background:#3d5a80;}
+  .bar{position:relative;background:#e8ecf2;border-radius:3px;height:14px;min-width:120px;overflow:hidden;}
+  .bar i{position:absolute;left:0;top:0;bottom:0;background:#2b8a4a;border-radius:3px;}
+  .bar i.low{background:#c0392b;}
+  .bar i.mid{background:#e67e22;}
+  .bar span{position:relative;font-size:10px;padding-left:4px;color:#222;line-height:14px;}
+  /* 日別モーダル */
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:100;}
+  .modal{background:#fff;border-radius:8px;padding:18px 22px;max-width:92vw;max-height:85vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,.3);}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;gap:24px;margin-bottom:12px;}
+  .modal-head b{font-size:15px;color:#2b4c7e;}
+  .modal table input{width:60px;padding:2px 4px;font-size:12px;text-align:right;border:1px solid #bbb;border-radius:3px;}
+  .modal td.sum{font-weight:bold;background:#eef3ee;text-align:right;}
+  .modal .day-ok{color:#1a7a3a;font-weight:bold;}
+  .modal .day-ng{color:#c0392b;font-weight:bold;}
+  .modal td.hol{background:#fdf1f1;}
+  @media print{
+    .toolbar,.rules{display:none;}
+    .wrap{max-height:none;overflow:visible;}
+    body{background:#fff;margin:8px;}
+    .card{box-shadow:none;}
+  }
+</style>
+</head>
+<body>
+<h1>首都圏支社イベント実績管理簿（2026年7月）</h1>
+
+<div class="rules">
+  <b>●HS新規</b>：PI、純粋新規　※ドコモのMVNOはカウント対象外　※<b>委託先評価は当日成約（PI即日）のみ対象</b>。同点の場合は後日含み実績を参考<br>
+  <b>●ドコモ光PI同日付帯率</b>：ドコモ光+home5G獲得数 ／ PI獲得世帯数（委託先申告）　※<span class="warn">申告数とALADIN実績に乖離がある場合、加点ポイント1ランクダウン</span><br>
+  <b>●加点</b>：HS新規達成率 120%以上=12pt / 100%以上=10pt / 80%以上=8pt　｜　dカード付帯率 15%以上=4pt / 10%以上=2pt　｜　光付帯率 20%以上=4pt / 15%以上=2pt<br>
+  <b>●減点</b>：法令違反等=次月以降契約なし / 催事回数制限・出禁=-4pt / 書面提出・返金事案=-3pt / 口頭注意・報告物遅延=-1pt / その他 都度判断<br>
+  <b>●継続判定</b>：委託先評価 足切り24pt ／ CPA 足切り50,000円/件（目標4万円/件）。<span class="warn">どちらか片方でも足切り未達=契約終了</span>
+</div>
+
+<div class="toolbar">
+  <label>週: <select id="fWeek" onchange="applyFilter()"><option value="">全て</option></select></label>
+  <label>支店: <select id="fBranch" onchange="applyFilter()"><option value="">全て</option></select></label>
+  <label>状態: <select id="fStatus" onchange="applyFilter()"><option value="">全て</option><option>開催前</option><option>実施中</option><option>終了</option></select></label>
+  <label>ディレクター: <select id="fDirector" onchange="applyFilter()"><option value="">全て</option></select></label>
+  <button onclick="addRow();saveAll()">行追加</button>
+  <button class="sec" onclick="delRow()">末尾行削除</button>
+  <button class="sec" onclick="exportCsv()">CSV出力</button>
+  <button class="sec" onclick="window.print()">印刷</button>
+  <button class="danger" onclick="resetAll()">初期データに戻す</button>
+  <span class="savemsg" id="saveMsg"></span>
+</div>
+
+<div class="wrap">
+<table id="ledger">
+  <thead>
+    <tr>
+      <th rowspan="2">状態</th>
+      <th rowspan="2">実施週</th>
+      <th rowspan="2">項番</th>
+      <th rowspan="2">枠</th>
+      <th rowspan="2">支店</th>
+      <th rowspan="2">施設名</th>
+      <th colspan="2">メインスペース（①週末実施の会場）</th>
+      <th colspan="2">サブスペース（②）</th>
+      <th rowspan="2">備考</th>
+      <th rowspan="2">実施規模</th>
+      <th rowspan="2">①サイズ</th>
+      <th rowspan="2">②サイズ</th>
+      <th rowspan="2">開始日</th>
+      <th rowspan="2">終了日</th>
+      <th rowspan="2">実施日数</th>
+      <th rowspan="2">コンテンツ</th>
+      <th rowspan="2">委託先</th>
+      <th rowspan="2">ディレクター</th>
+      <th rowspan="2">目標値</th>
+      <th rowspan="2">休日/日</th>
+      <th rowspan="2">平日/日</th>
+      <th colspan="6" class="grp-actual">実績</th>
+      <th rowspan="2" class="grp-rate">達成率<br>(即日)※評価</th>
+      <th rowspan="2" class="grp-rate">達成率<br>(即日+予約)</th>
+      <th rowspan="2" class="grp-rate">dカード<br>付帯率</th>
+      <th rowspan="2" class="grp-rate">光HS同日<br>付帯率</th>
+      <th rowspan="2" class="grp-rate">ペース<br>(実施中)</th>
+      <th rowspan="2">日別<br>入力</th>
+    </tr>
+    <tr>
+      <th>フロア</th><th>スペース名</th>
+      <th>フロア</th><th>スペース名</th>
+      <th class="grp-actual">HS(即日)</th>
+      <th class="grp-actual">HS(予約)</th>
+      <th class="grp-actual">HS獲得世帯数<br>(委託先申告)</th>
+      <th class="grp-actual">dカード</th>
+      <th class="grp-actual">光</th>
+      <th class="grp-actual">home5G</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+  <tfoot>
+    <tr>
+      <td colspan="20">合計（表示行のみ）</td>
+      <td class="num" id="sumTarget"></td>
+      <td colspan="2"></td>
+      <td class="num" id="sumPi1"></td>
+      <td class="num" id="sumPi2"></td>
+      <td class="num" id="sumSetai"></td>
+      <td class="num" id="sumCard"></td>
+      <td class="num" id="sumHikari"></td>
+      <td class="num" id="sumH5g"></td>
+      <td class="calc" id="totalRate1"></td>
+      <td class="calc" id="totalRate2"></td>
+      <td class="calc" id="totalCardRate"></td>
+      <td class="calc" id="totalFutai"></td>
+      <td class="calc"></td>
+      <td></td>
+    </tr>
+  </tfoot>
+</table>
+</div>
+
+<h2>委託先評価サマリ（全行集計・月次）</h2>
+<div class="panel">
+  <div class="card">
+    <h3>加点ポイント</h3>
+    <div class="row"><span>HS新規達成率（即日/目標）</span><span class="v" id="evHsRate">-</span></div>
+    <div class="row"><span>→ ポイント（120%↑12pt / 100%↑10pt / 80%↑8pt）</span><span class="v pt" id="evHsPt">-</span></div>
+    <div class="row"><span>dカード付帯率（カード/HS世帯数）</span><span class="v" id="evCardRate">-</span></div>
+    <div class="row"><span>→ ポイント（15%↑4pt / 10%↑2pt）</span><span class="v pt" id="evCardPt">-</span></div>
+    <div class="row"><span>光HS同日付帯率（光+home5G/HS世帯数）</span><span class="v" id="evHikariRate">-</span></div>
+    <div class="row"><span>→ ポイント（20%↑4pt / 15%↑2pt）</span><span class="v pt" id="evHikariPt">-</span></div>
+  </div>
+  <div class="card">
+    <h3>付帯率 目標獲得数（HS世帯数から自動算出）</h3>
+    <div class="row"><span><b>dカード</b>（現在 <span id="tgCardNow">-</span>件）</span><span></span></div>
+    <div class="row"><span>　2pt（10%）に必要</span><span class="v" id="tgCard10">-</span></div>
+    <div class="row"><span>　4pt（15%）に必要</span><span class="v" id="tgCard15">-</span></div>
+    <div class="row" style="border-top:1px solid #eee;margin-top:4px;padding-top:4px;"><span><b>光+home5G</b>（現在 <span id="tgHikariNow">-</span>件）</span><span></span></div>
+    <div class="row"><span>　2pt（15%）に必要</span><span class="v" id="tgHikari15">-</span></div>
+    <div class="row"><span>　4pt（20%）に必要</span><span class="v" id="tgHikari20">-</span></div>
+  </div>
+  <div class="card">
+    <h3>減点・合計</h3>
+    <div class="row"><span>減点（インシデント）</span><span><input type="number" id="evMinus" value="0" min="0" oninput="updateAll();saveAll()"> pt</span></div>
+    <div class="row"><span>ALADIN乖離（付帯率1ランクダウン）</span><span><label><input type="checkbox" id="evAladinCard" onchange="updateAll();saveAll()" style="width:auto">dカード</label>　<label><input type="checkbox" id="evAladinHikari" onchange="updateAll();saveAll()" style="width:auto">光</label></span></div>
+    <div class="row" style="border-top:1px solid #ccc;margin-top:6px;padding-top:6px;"><span><b>委託先評価 合計</b></span><span class="v pt" id="evTotalPt">-</span></div>
+    <div class="verdict" id="evPtVerdict">足切り基準: 24pt</div>
+  </div>
+  <div class="card">
+    <h3>CPA（7-8月合計が評価対象）</h3>
+    <div class="row"><span>ご請求額（WS等支社依頼費用は除く）</span><span><input type="number" id="evBilling" value="" placeholder="円" oninput="updateAll();saveAll()"> 円</span></div>
+    <div class="row"><span>HS新規実績（当日成約 ΣHS即日）</span><span class="v" id="evHsCount">-</span></div>
+    <div class="row"><span><b>CPA（請求額/件）</b></span><span class="v pt" id="evCpa">-</span></div>
+    <div class="row"><span>目標: 40,000円/件　足切り: 50,000円/件</span><span></span></div>
+    <div class="verdict" id="evCpaVerdict">請求額を入力</div>
+  </div>
+</div>
+
+<h2>ディレクター別サマリ</h2>
+<table class="mini" id="directorSummary">
+  <thead><tr><th>ディレクター</th><th>件数</th><th>目標計</th><th>HS即日</th><th>HS予約</th><th>dカード</th><th>光+5G</th><th>達成率(即日)</th><th style="min-width:140px">進捗</th></tr></thead>
+  <tbody></tbody>
+</table>
+
+<h2>支店別サマリ</h2>
+<table class="mini" id="branchSummary">
+  <thead><tr><th>支店</th><th>件数</th><th>目標計</th><th>HS即日</th><th>HS予約</th><th>達成率(即日)</th><th style="min-width:140px">進捗</th></tr></thead>
+  <tbody></tbody>
+</table>
+
+<h2>週別サマリ</h2>
+<table class="mini" id="weekSummary">
+  <thead><tr><th>週</th><th>件数</th><th>目標計</th><th>HS即日</th><th>HS予約</th><th>達成率(即日)</th><th style="min-width:140px">進捗</th></tr></thead>
+  <tbody></tbody>
+</table>
+
+<datalist id="dirList"></datalist>
+
+<div id="dayModal" class="modal-bg" style="display:none" onclick="if(event.target===this)closeDaily()">
+  <div class="modal">
+    <div class="modal-head"><b id="dmTitle"></b><button class="sec" onclick="closeDaily()">閉じる</button></div>
+    <div class="sub">日毎に入力すると行の実績合計に自動反映。日次目標: 土日=休日/日、平日=平日/日。</div>
+    <div id="dmBody"></div>
+  </div>
+</div>
+
+<script>
+const DATA = [
+["3W","17","ランクA","神）神奈川支店","トレッサ横浜","1F","ソレイユ広場","","","","小","14.85","","7月17日","7月20日","4","","ルーデンス","53","15","8"],
+["1W","21","ランクA","神）神奈川支店","ららぽーと海老名","4F","4-②北側エスカレーター前Ⓐ","","","","大","40","","7月1日","7月5日","5","7/4ｰ5：アクスタWS","ルーデンス","65","19","9"],
+["2W","22","ランクA","神）神奈川支店","ららぽーと海老名","3F","3-⑥東側エスカレーター前","1F","1-① 広場口エントランス前","7/8-10：31906（1-① 広場口エントランス前）、7/11-12：31903（3-⑥東側エスカレーター前）","中","27","60","7月8日","7月12日","5","","ルーデンス","39","18","1"],
+["1W","29","ランクB","神）神奈川支店","アリオ橋本","1F","1階フードコート脇","","","","小","10","","7月4日","7月5日","2","","ルーデンス","24","12","1"],
+["4W","32","ランクB","神）神奈川支店","アリオ橋本","2F","2階 グランサックス前","","","","小","10","","7月25日","7月26日","2","","ルーデンス","22","11","1"],
+["1W","33","ランクB","東）東京支店","アリオ西新井","2F","TSUTSUMI前","","","","小","4.5","","7月4日","7月5日","2","","ルーデンス","12","6","1"],
+["2W","34","ランクB","東）東京支店","アリオ西新井","2F","GU前","","","","大","50","","7月11日","7月12日","2","7/11ｰ12：恐竜(中)","ルーデンス","16","8","1"],
+["2W","38","ランクB","千）千葉支店","アリオ蘇我","2F","⑨2Fアリオモールエスカレータ前","","","","中","23","","7月11日","7月12日","2","","ルーデンス","28","14","1"],
+["1W","49","ランクB","山）山梨支店","イオンモール甲府昭和","2F","ほたる南ブリッジ（2F）","","","","中","15","","7月4日","7月5日","2","","ルーデンス","32","16","7"],
+["2W","50","ランクB","山）山梨支店","イオンモール甲府昭和","1F","さくら広場","","","","特大","194.28","","7月10日","7月12日","3","7/11ｰ12：恐竜(大)","ルーデンス","60","27","6"],
+["3W","51","ランクB","山）山梨支店","イオンモール甲府昭和","2F","ほたる南ブリッジ（2F）","","","","中","15","","7月18日","7月20日","3","","ルーデンス","48","16","7"],
+["4W","52","ランクB","山）山梨支店","イオンモール甲府昭和","1F","ほたる広場","","","","特大","100.97","","7月24日","7月27日","4","","ルーデンス","66","22","11"],
+["4W","64","ランクB","多）多摩支店","イオンモール多摩平の森","2F","2F無印良品前","","","","中","20","","7月25日","7月26日","2","","ルーデンス","30","15","1"],
+["1W","81","ランクB","千）千葉支店","ユニモちはら台","2F","ダイソー前","","","","小","10","","7月4日","7月5日","2","","ルーデンス","26","13","1"],
+["4W","84","ランクB","千）千葉支店","ユニモちはら台","2F","丸善前","","","","小","10","","7月25日","7月26日","2","","ルーデンス","28","14","1"],
+["1W","89","ランクB","神）神奈川支店","ららぽーと横浜","3F","3階IY連絡口","","","","中","20","","7月4日","7月5日","2","","ルーデンス","24","12","13"],
+["2W","90","ランクB","神）神奈川支店","ららぽーと横浜","3F","3階IY連絡口","","","","中","20","","7月11日","7月12日","2","","ルーデンス","24","12","13"],
+["3W","91","ランクB","神）神奈川支店","ららぽーと横浜","2F","2階ノースストレート（ノースコート側）","","","","小","12","","7月18日","7月20日","3","","ルーデンス","57","19","4"],
+["4W","92","ランクB","神）神奈川支店","ららぽーと横浜","2F","2階ノースストレート（ノースコート側）","","","","小","12","","7月25日","7月26日","2","","ルーデンス","38","19","4"],
+];
+
+// 列: 0 状態 / 1-22 計画(19=ディレクター) / 23-28 実績 / 29-33 計算(33=ペース) / 34 日別ボタン
+const STATUS_COL = 0;
+const DIRECTOR_IDX = 19;
+const ACTUAL_COLS = [23,24,25,26,27,28];
+const CALC_COLS = [29,30,31,32,33];
+const PACE_COL = 33;
+const DAY_COL = 34;
+const TOTAL_COLS = 35;
+const NUM_PLAN = [12,13,16,20,21,22];
+const TARGET_IDX = 20;
+const HOL_IDX = 21, WK_IDX = 22;
+const YEAR = 2026;
+const LS_KEY = 'event-ledger-v3';
+const DAY_FIELDS = [
+  {key:'p1', label:'HS(即日)', col:23},
+  {key:'p2', label:'HS(予約)', col:24},
+  {key:'ss', label:'HS世帯数', col:25},
+  {key:'card', label:'dカード', col:26},
+  {key:'hk', label:'光', col:27},
+  {key:'h5', label:'home5G', col:28},
+];
+const convData = d => [...d.slice(0,18), '', ...d.slice(18)];
+let dailyData = {};   // {rowIndex: {"2026-07-17": {p1:..,p2:..}}}
+
+function parseJpDate(s){
+  const m = s.match(/(\d{1,2})月(\d{1,2})日/);
+  if(!m) return null;
+  return new Date(YEAR, Number(m[1])-1, Number(m[2]));
+}
+function isoOf(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+// 2026年 国民の祝日（振替休日含む）
+const HOLIDAYS = new Set([
+'2026-01-01','2026-01-12','2026-02-11','2026-02-23','2026-03-20',
+'2026-04-29','2026-05-03','2026-05-04','2026-05-05','2026-05-06',
+'2026-07-20','2026-08-11','2026-09-21','2026-09-22','2026-09-23',
+'2026-10-12','2026-11-03','2026-11-23',
+]);
+function isHol(d){ const w=d.getDay(); return w===0||w===6||HOLIDAYS.has(isoOf(d)); }
+
+function cellText(td){
+  const inp = td.querySelector('input');
+  return inp ? inp.value : td.textContent;
+}
+
+function rowStatus(c){
+  const s = parseJpDate(c[14].textContent), e = parseJpDate(c[15].textContent);
+  if(!s || !e) return ['', ''];
+  const today = new Date(); today.setHours(0,0,0,0);
+  const end = new Date(e); end.setHours(23,59,59,999);
+  if(today < s) return ['開催前','before'];
+  if(today > end) return ['終了','done'];
+  return ['実施中','ongoing'];
+}
+
+function addRow(data){
+  const tbody = document.querySelector('#ledger tbody');
+  const tr = document.createElement('tr');
+  for(let i=0;i<TOTAL_COLS;i++){
+    const td = document.createElement('td');
+    if(i===STATUS_COL){
+      td.className = 'st';
+    }else if(CALC_COLS.includes(i)){
+      td.className = 'calc';
+    }else if(i===DAY_COL){
+      const b = document.createElement('button');
+      b.textContent = '日別';
+      b.className = 'mini-btn';
+      b.onclick = ()=>openDaily(tr.rowIndex-2);   // thead2行分
+      td.appendChild(b);
+      td.style.textAlign = 'center';
+    }else if(i===DIRECTOR_IDX){
+      const inp = document.createElement('input');
+      inp.className = 'dir';
+      inp.setAttribute('list','dirList');
+      inp.placeholder = '名前';
+      if(data && data[i-1] !== undefined) inp.value = data[i-1];
+      inp.oninput = ()=>{updateAll();saveAll();};
+      td.appendChild(inp);
+    }else{
+      td.contentEditable = true;
+      if(NUM_PLAN.includes(i) || ACTUAL_COLS.includes(i)) td.className = 'num';
+      td.oninput = ()=>{updateAll();saveAll();};
+      if(data && data[i-1] !== undefined) td.textContent = data[i-1];
+    }
+    tr.appendChild(td);
+  }
+  if(data && data[2]==='ランクA') tr.classList.add('rankA');
+  tbody.appendChild(tr);
+  updateAll();
+}
+
+function delRow(){
+  const tbody = document.querySelector('#ledger tbody');
+  if(tbody.rows.length>1){
+    delete dailyData[String(tbody.rows.length-1)];
+    tbody.deleteRow(-1);
+  }
+  updateAll(); saveAll();
+}
+
+function n(td){ return Number(td.textContent.replace(/[^0-9.-]/g,''))||0; }
+function pct(a,b){ return b>0 ? a/b*100 : null; }
+function fmt(r){ return r===null ? '' : r.toFixed(1)+'%'; }
+
+function setRate(td, actual, target, colorize){
+  const r = pct(actual,target);
+  td.textContent = fmt(r);
+  td.classList.remove('ok','ng');
+  if(r!==null && colorize){ td.classList.add(r>=100?'ok':'ng'); }
+}
+
+// ペース判定: 経過日の日次目標累計(土日=休日/日) vs HS即日
+function setPace(c, td){
+  td.classList.remove('ok','ng');
+  const s = parseJpDate(c[14].textContent), e = parseJpDate(c[15].textContent);
+  const today = new Date(); today.setHours(0,0,0,0);
+  if(!s || !e || today < s || today > e){ td.textContent=''; return; }
+  const holT = n(c[HOL_IDX]), wkT = n(c[WK_IDX]);
+  let expected = 0;
+  for(let d = new Date(s); d <= today; d.setDate(d.getDate()+1)){
+    expected += isHol(d) ? holT : wkT;
+  }
+  if(expected<=0){ td.textContent=''; return; }
+  const ratio = n(c[23])/expected*100;
+  const label = ratio>=100 ? '順調' : ratio>=80 ? 'やや遅れ' : '遅れ';
+  td.textContent = label+' '+ratio.toFixed(0)+'%';
+  if(ratio>=100) td.classList.add('ok');
+  else if(ratio<80) td.classList.add('ng');
+}
+
+function hsPt(r){ if(r===null)return 0; if(r>=120)return 12; if(r>=100)return 10; if(r>=80)return 8; return 0; }
+function cardPt(r,down){ if(r===null)return 0; let p = r>=15?4 : r>=10?2 : 0; if(down) p = p===4?2:0; return p; }
+function hikariPt(r,down){ if(r===null)return 0; let p = r>=20?4 : r>=15?2 : 0; if(down) p = p===4?2:0; return p; }
+
+function barHtml(rate){
+  if(rate===null) return '';
+  const w = Math.min(rate,100);
+  const cls = rate>=100 ? '' : rate>=80 ? 'mid' : 'low';
+  return `<div class="bar"><i class="${cls}" style="width:${w}%"></i><span>${rate.toFixed(1)}%</span></div>`;
+}
+
+function groupSummary(tableId, keyIdx, extra){
+  const rows = [...document.querySelectorAll('#ledger tbody tr')];
+  const g = {};
+  rows.forEach(r=>{
+    const c = r.cells;
+    const k = cellText(c[keyIdx]).trim() || '(未設定)';
+    g[k] = g[k] || {cnt:0,t:0,p1:0,p2:0,card:0,hk:0};
+    g[k].cnt++; g[k].t+=n(c[TARGET_IDX]); g[k].p1+=n(c[23]); g[k].p2+=n(c[24]);
+    g[k].card+=n(c[26]); g[k].hk+=n(c[27])+n(c[28]);
+  });
+  const tb = document.querySelector('#'+tableId+' tbody');
+  tb.innerHTML = '';
+  Object.keys(g).sort().forEach(k=>{
+    const v = g[k], r = pct(v.p1, v.t);
+    const cls = r===null ? '' : r>=100 ? 'ok' : 'ng';
+    const ex = extra ? `<td class="num">${v.card.toLocaleString()}</td><td class="num">${v.hk.toLocaleString()}</td>` : '';
+    tb.insertAdjacentHTML('beforeend',
+      `<tr><td>${k}</td><td class="num">${v.cnt}</td><td class="num">${v.t.toLocaleString()}</td>`+
+      `<td class="num">${v.p1.toLocaleString()}</td><td class="num">${v.p2.toLocaleString()}</td>${ex}`+
+      `<td class="num ${cls}"><b>${fmt(r)}</b></td><td>${barHtml(r)}</td></tr>`);
+  });
+}
+
+function updateAll(){
+  const rows = [...document.querySelectorAll('#ledger tbody tr')];
+  let sumT=0, s1=0, s2=0, ss=0, sc=0, sh=0, s5=0;
+  let a1=0, aT=0, aS=0, aC=0, aH=0, a5=0;
+  rows.forEach(r=>{
+    const c = r.cells;
+    const [label, cls] = rowStatus(c);
+    c[STATUS_COL].textContent = label;
+    c[STATUS_COL].className = 'st '+cls;
+    setRate(c[29], n(c[23]), n(c[TARGET_IDX]), true);
+    setRate(c[30], n(c[23])+n(c[24]), n(c[TARGET_IDX]), true);
+    setRate(c[31], n(c[26]), n(c[25]), false);
+    setRate(c[32], n(c[27])+n(c[28]), n(c[25]), false);
+    setPace(c, c[PACE_COL]);
+    a1+=n(c[23]); aT+=n(c[TARGET_IDX]); aS+=n(c[25]); aC+=n(c[26]); aH+=n(c[27]); a5+=n(c[28]);
+    if(r.style.display==='none') return;
+    sumT += n(c[TARGET_IDX]);
+    s1+=n(c[23]); s2+=n(c[24]); ss+=n(c[25]); sc+=n(c[26]); sh+=n(c[27]); s5+=n(c[28]);
+  });
+  sumTarget.textContent = sumT.toLocaleString();
+  sumPi1.textContent = s1.toLocaleString();
+  sumPi2.textContent = s2.toLocaleString();
+  sumSetai.textContent = ss.toLocaleString();
+  sumCard.textContent = sc.toLocaleString();
+  sumHikari.textContent = sh.toLocaleString();
+  sumH5g.textContent = s5.toLocaleString();
+  setRate(totalRate1, s1, sumT, true);
+  setRate(totalRate2, s1+s2, sumT, true);
+  setRate(totalCardRate, sc, ss, false);
+  setRate(totalFutai, sh+s5, ss, false);
+
+  // 評価サマリ
+  const hsR = pct(a1, aT), cR = pct(aC, aS), hR = pct(aH+a5, aS);
+  const downC = evAladinCard.checked, downH = evAladinHikari.checked;
+  const p1 = hsPt(hsR), p2 = cardPt(cR, downC), p3 = hikariPt(hR, downH);
+  const minus = Number(evMinus.value)||0;
+  const total = p1+p2+p3-minus;
+
+  evHsRate.textContent = fmt(hsR)||'-';
+  evHsPt.textContent = p1+'pt';
+  evCardRate.textContent = fmt(cR)||'-';
+  evCardPt.textContent = p2+'pt'+(downC?'（乖離DOWN）':'');
+  evHikariRate.textContent = fmt(hR)||'-';
+  evHikariPt.textContent = p3+'pt'+(downH?'（乖離DOWN）':'');
+
+  function tg(el, nowCount, rateTh){
+    if(aS<=0){ el.textContent='-'; el.className='v'; return; }
+    const need = Math.ceil(aS*rateTh/100);
+    const rest = need-nowCount;
+    el.textContent = need+'件'+(rest>0 ? '（あと'+rest+'件）' : '（達成済）');
+    el.className = 'v '+(rest>0?'ng':'ok');
+  }
+  tgCardNow.textContent = aC.toLocaleString();
+  tgHikariNow.textContent = (aH+a5).toLocaleString();
+  tg(tgCard10, aC, 10); tg(tgCard15, aC, 15);
+  tg(tgHikari15, aH+a5, 15); tg(tgHikari20, aH+a5, 20);
+
+  evTotalPt.textContent = total+'pt';
+  evTotalPt.className = 'v pt '+(total>=24?'ok':'ng');
+  evPtVerdict.textContent = total>=24 ? '足切り基準(24pt)クリア' : '足切り基準(24pt)未達 → 契約終了リスク';
+  evPtVerdict.className = 'verdict '+(total>=24?'ok':'ng');
+
+  evHsCount.textContent = a1.toLocaleString()+'件';
+  const billing = Number(evBilling.value)||0;
+  if(billing>0 && a1>0){
+    const cpa = billing/a1;
+    evCpa.textContent = Math.round(cpa).toLocaleString()+'円/件';
+    evCpa.className = 'v pt '+(cpa<=50000?'ok':'ng');
+    evCpaVerdict.textContent = cpa<=40000 ? '目標(4万円/件)クリア'
+      : cpa<=50000 ? '足切りクリア（目標4万円は未達）'
+      : '足切り基準(5万円/件)超過 → 契約終了リスク';
+    evCpaVerdict.className = 'verdict '+(cpa<=50000?'ok':'ng');
+  }else{
+    evCpa.textContent = '-'; evCpa.className='v pt';
+    evCpaVerdict.textContent = '請求額を入力'; evCpaVerdict.className='verdict';
+  }
+
+  groupSummary('directorSummary', DIRECTOR_IDX, true);
+  groupSummary('branchSummary', 4);
+  groupSummary('weekSummary', 1);
+  refreshDirectorNames();
+}
+
+function refreshDirectorNames(){
+  const names = [...new Set([...document.querySelectorAll('#ledger tbody tr')]
+    .map(r=>cellText(r.cells[DIRECTOR_IDX]).trim()).filter(Boolean))].sort();
+  // datalist
+  const dl = document.getElementById('dirList');
+  if([...dl.options].map(o=>o.value).join('|') !== names.join('|')){
+    dl.innerHTML = '';
+    names.forEach(v=>{ const o=document.createElement('option'); o.value=v; dl.appendChild(o); });
+  }
+  // フィルタ
+  const cur = fDirector.value;
+  const opts = [...fDirector.options].map(o=>o.value).slice(1);
+  if(opts.join('|') !== names.join('|')){
+    fDirector.innerHTML = '<option value="">全て</option>';
+    names.forEach(v=>fDirector.add(new Option(v,v)));
+    if(names.includes(cur)) fDirector.value = cur;
+  }
+}
+
+function applyFilter(){
+  const w = fWeek.value, b = fBranch.value, st = fStatus.value, dr = fDirector.value;
+  document.querySelectorAll('#ledger tbody tr').forEach(r=>{
+    const okW = !w || r.cells[1].textContent.trim()===w;
+    const okB = !b || r.cells[4].textContent.trim()===b;
+    const okS = !st || r.cells[STATUS_COL].textContent===st;
+    const okD = !dr || cellText(r.cells[DIRECTOR_IDX]).trim()===dr;
+    r.style.display = (okW && okB && okS && okD) ? '' : 'none';
+  });
+  updateAll();
+}
+
+// ===== 日別入力 =====
+let currentDayRow = null;
+
+function openDaily(rowIdx){
+  const rows = document.querySelectorAll('#ledger tbody tr');
+  const r = rows[rowIdx];
+  if(!r) return;
+  const c = r.cells;
+  const s = parseJpDate(c[14].textContent), e = parseJpDate(c[15].textContent);
+  if(!s || !e || s > e){ alert('開始日・終了日を「7月17日」形式で入力してから開いてください'); return; }
+  currentDayRow = rowIdx;
+  const key = String(rowIdx);
+  dailyData[key] = dailyData[key] || {};
+  const holT = n(c[HOL_IDX]), wkT = n(c[WK_IDX]);
+
+  dmTitle.textContent = c[5].textContent+'（'+c[14].textContent+'〜'+c[15].textContent+'）日別実績';
+  let html = '<table><thead><tr><th>日付</th><th>曜日</th><th>日次目標</th>';
+  DAY_FIELDS.forEach(f=>html+='<th>'+f.label+'</th>');
+  html += '<th>日次達成(即日)</th></tr></thead><tbody>';
+  const wdays = ['日','月','火','水','木','金','土'];
+  for(let d = new Date(s); d <= e; d.setDate(d.getDate()+1)){
+    const iso = isoOf(d), hol = isHol(d);
+    const tgt = hol ? holT : wkT;
+    const vals = dailyData[key][iso] || {};
+    html += `<tr${hol?' class="hol"':''}><td${hol?' class="hol"':''}>${d.getMonth()+1}/${d.getDate()}</td><td${hol?' class="hol"':''}>${wdays[d.getDay()]}</td><td class="num${hol?' hol':''}">${tgt}</td>`;
+    DAY_FIELDS.forEach(f=>{
+      html += `<td${hol?' class="hol"':''}><input type="number" min="0" value="${vals[f.key]??''}" oninput="dayInput('${iso}','${f.key}',this.value)"></td>`;
+    });
+    html += `<td class="num${hol?' hol':''}" id="dayAch-${iso}"></td></tr>`;
+  }
+  html += '</tbody><tfoot><tr><td colspan="3">合計</td>';
+  DAY_FIELDS.forEach(f=>html+=`<td class="sum" id="daySum-${f.key}"></td>`);
+  html += '<td></td></tr></tfoot></table>';
+  dmBody.innerHTML = html;
+  refreshDayView();
+  dayModal.style.display = 'flex';
+}
+
+function dayInput(iso, field, value){
+  const key = String(currentDayRow);
+  dailyData[key][iso] = dailyData[key][iso] || {};
+  dailyData[key][iso][field] = value===''? undefined : Number(value);
+  applyDailyToRow(currentDayRow);
+  refreshDayView();
+  updateAll(); saveAll();
+}
+
+function applyDailyToRow(rowIdx){
+  const r = document.querySelectorAll('#ledger tbody tr')[rowIdx];
+  if(!r) return;
+  const key = String(rowIdx);
+  const days = dailyData[key] || {};
+  DAY_FIELDS.forEach(f=>{
+    let sum = 0, any = false;
+    Object.values(days).forEach(v=>{ if(v[f.key]!==undefined && v[f.key]!==null && v[f.key]!==''){ sum+=Number(v[f.key])||0; any=true; } });
+    if(any) r.cells[f.col].textContent = String(sum);
+  });
+}
+
+function refreshDayView(){
+  const rows = document.querySelectorAll('#ledger tbody tr');
+  const r = rows[currentDayRow]; if(!r) return;
+  const c = r.cells;
+  const key = String(currentDayRow);
+  const days = dailyData[key] || {};
+  const holT = n(c[HOL_IDX]), wkT = n(c[WK_IDX]);
+  // 日次達成
+  const s = parseJpDate(c[14].textContent), e = parseJpDate(c[15].textContent);
+  for(let d = new Date(s); d <= e; d.setDate(d.getDate()+1)){
+    const iso = isoOf(d);
+    const el = document.getElementById('dayAch-'+iso);
+    if(!el) continue;
+    const tgt = isHol(d) ? holT : wkT;
+    const got = Number((days[iso]||{}).p1)||0;
+    if(tgt>0 && (days[iso]||{}).p1!==undefined){
+      const rr = got/tgt*100;
+      el.innerHTML = `<span class="${rr>=100?'day-ok':'day-ng'}">${rr.toFixed(0)}%</span>`;
+    }else el.textContent = '';
+  }
+  // 合計
+  DAY_FIELDS.forEach(f=>{
+    let sum = 0;
+    Object.values(days).forEach(v=>{ sum += Number(v[f.key])||0; });
+    const el = document.getElementById('daySum-'+f.key);
+    if(el) el.textContent = sum.toLocaleString();
+  });
+}
+
+function closeDaily(){
+  dayModal.style.display = 'none';
+  currentDayRow = null;
+}
+
+// ===== 保存/復元 =====
+let saveTimer;
+function saveAll(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{
+    const rows = [...document.querySelectorAll('#ledger tbody tr')].map(r=>{
+      const a = [];
+      for(let i=1;i<=28;i++) a.push(cellText(r.cells[i]));
+      return a;
+    });
+    const state = {rows, daily:dailyData, minus:evMinus.value, aladinC:evAladinCard.checked, aladinH:evAladinHikari.checked, billing:evBilling.value};
+    try{ localStorage.setItem(LS_KEY, JSON.stringify(state));
+      saveMsg.textContent = '自動保存済 '+new Date().toLocaleTimeString();
+    }catch(e){}
+  }, 400);
+}
+
+function loadAll(){
+  let state = null;
+  try{ state = JSON.parse(localStorage.getItem(LS_KEY)); }catch(e){}
+  if(state && state.rows && state.rows.length){
+    dailyData = state.daily || {};
+    state.rows.forEach(d=>addRow(d));
+    evMinus.value = state.minus||0;
+    evAladinCard.checked = !!state.aladinC;
+    evAladinHikari.checked = !!state.aladinH;
+    evBilling.value = state.billing||'';
+    saveMsg.textContent = '保存データ復元済';
+  }else{
+    DATA.forEach(d=>addRow(convData(d)));
+  }
+}
+
+function resetAll(){
+  if(!confirm('入力した実績・日別データを破棄して初期データに戻します。よろしいですか？')) return;
+  localStorage.removeItem(LS_KEY);
+  location.reload();
+}
+
+// ===== CSV出力 =====
+function exportCsv(){
+  const heads = ['状態','実施週','項番','枠','支店','施設名','①フロア','①スペース名','②フロア','②スペース名','備考','実施規模','①サイズ','②サイズ','開始日','終了日','実施日数','コンテンツ','委託先','ディレクター','目標値','休日/日','平日/日','HS即日','HS予約','HS世帯数(申告)','dカード','光','home5G','達成率(即日)','達成率(即日+予約)','dカード付帯率','光付帯率','ペース'];
+  const lines = [heads.join(',')];
+  document.querySelectorAll('#ledger tbody tr').forEach(r=>{
+    const vals = [...r.cells].filter((_,i)=>i!==DAY_COL).map(td=>'"'+cellText(td).replace(/"/g,'""')+'"');
+    lines.push(vals.join(','));
+  });
+  const blob = new Blob(['﻿'+lines.join('\r\n')], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '首都圏支社イベント実績管理簿.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+loadAll();
+[...new Set(DATA.map(d=>d[0]))].sort().forEach(v=>fWeek.add(new Option(v,v)));
+[...new Set(DATA.map(d=>d[3]))].sort().forEach(v=>fBranch.add(new Option(v,v)));
+updateAll();
+</script>
+</body>
+</html>
