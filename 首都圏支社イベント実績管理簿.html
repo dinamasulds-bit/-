@@ -128,6 +128,8 @@
   <button class="danger" id="resetBtn" onclick="resetAll()">初期データに戻す</button>
   <button class="sec" id="simpleBtn" onclick="toggleSimple()">簡易表示</button>
   <button class="lockbtn" id="lockBtn" onclick="onLockBtn()">編集する</button>
+  <button class="sec" onclick="openHistory()">変更履歴</button>
+  <span class="savemsg" id="editorNameLabel" style="cursor:pointer;text-decoration:underline;" onclick="promptEditorName()"></span>
   <span class="savemsg" id="saveMsg"></span>
   <span class="savemsg" id="syncMsg" style="color:#c0392b;">共有: 未接続（ローカルのみ）</span>
 </div>
@@ -264,6 +266,14 @@
   </div>
 </div>
 
+<div id="historyModal" class="modal-bg" style="display:none" onclick="if(event.target===this)closeHistory()">
+  <div class="modal" style="min-width:min(720px,92vw);">
+    <div class="modal-head"><b>変更履歴（直近40件・共有）</b><button class="sec" onclick="closeHistory()">閉じる</button></div>
+    <div class="sub">「この内容に戻す」は編集ロック解除中のみ操作可。復元も履歴に記録される。</div>
+    <div id="historyBody" style="max-height:70vh;overflow:auto;"></div>
+  </div>
+</div>
+
 <script>
 const DATA = [
 ["3W","17","ランクA","神）神奈川支店","トレッサ横浜","1F","ソレイユ広場","","","","小","14.85","","7月17日","7月20日","4","","ルーデンス","53","15","8"],
@@ -302,6 +312,48 @@ const YEAR = 2026;
 const LS_KEY = 'event-ledger-v3';
 const MOBILE_VIEW_KEY = 'event-ledger-mobile-view';
 const DETAIL_COLS = [2,3,6,7,8,9,10,11,12,13,16,17,21,22,25,26,27,28,30,31,32];
+const EDITOR_NAME_KEY = 'event-ledger-editor-name';
+const ROW_FIELD_LABELS = ['実施週','項番','枠','支店','施設名','フロア(main)','スペース名(main)','フロア(sub)','スペース名(sub)','備考','実施規模','①サイズ','②サイズ','開始日','終了日','実施日数','コンテンツ','委託先','ディレクター','目標値','休日/日','平日/日','HS即日','HS予約','HS世帯数','dカード','光','home5G'];
+function getEditorName(){
+  let name = null;
+  try{ name = localStorage.getItem(EDITOR_NAME_KEY); }catch(e){}
+  return name || '不明';
+}
+function promptEditorName(){
+  const cur = getEditorName();
+  const name = prompt('お名前を入力してください（変更履歴に記録されます）', cur==='不明'?'':cur);
+  if(name){ try{ localStorage.setItem(EDITOR_NAME_KEY, name); }catch(e){} }
+  updateEditorNameLabel();
+}
+function updateEditorNameLabel(){
+  const el = document.getElementById('editorNameLabel');
+  if(!el) return;
+  el.textContent = editUnlocked ? ('編集者: '+getEditorName()) : '';
+}
+function diffStates(oldSt, newSt){
+  const changes = [];
+  if(!oldSt) return changes;
+  const oldRows = oldSt.rows||[], newRows = newSt.rows||[];
+  const maxLen = Math.max(oldRows.length, newRows.length);
+  for(let r=0;r<maxLen;r++){
+    const a = oldRows[r], b = newRows[r];
+    if(!a && b){ changes.push(`[行追加] ${b[4]||'(無題)'}`); continue; }
+    if(a && !b){ changes.push(`[行削除] ${a[4]||'(無題)'}`); continue; }
+    if(!a || !b) continue;
+    const fieldChanges = [];
+    for(let c=0;c<ROW_FIELD_LABELS.length;c++){
+      const av = a[c]??'', bv = b[c]??'';
+      if(av !== bv) fieldChanges.push(`${ROW_FIELD_LABELS[c]}:${av||'(空)'}→${bv||'(空)'}`);
+    }
+    if(fieldChanges.length) changes.push(`${b[4]||a[4]||'(無題)'} — ${fieldChanges.join(', ')}`);
+  }
+  if(JSON.stringify(oldSt.daily||{})!==JSON.stringify(newSt.daily||{})) changes.push('[日別実績を編集]');
+  if(String(oldSt.minus)!==String(newSt.minus)) changes.push(`減点:${oldSt.minus}→${newSt.minus}`);
+  if(!!oldSt.aladinC!==!!newSt.aladinC) changes.push(`ALADIN乖離(dカード):${!!oldSt.aladinC}→${!!newSt.aladinC}`);
+  if(!!oldSt.aladinH!==!!newSt.aladinH) changes.push(`ALADIN乖離(光):${!!oldSt.aladinH}→${!!newSt.aladinH}`);
+  if(String(oldSt.billing||'')!==String(newSt.billing||'')) changes.push(`請求額:${oldSt.billing}→${newSt.billing}`);
+  return changes;
+}
 const EDIT_UNLOCK_KEY = 'event-ledger-edit-unlocked';
 const EDIT_PASSWORD_HASH = '0d0f9884f6d90bd95500d8d0f9703d92c20d8507dbb7c5ee9eb4db9bcaa3caaf';
 let editUnlocked = false;
@@ -318,6 +370,7 @@ function applyLockState(unlocked){
   [evMinus, evBilling, evAladinCard, evAladinHikari, addRowBtn, resetBtn].forEach(el=>{ if(el) el.disabled = !unlocked; });
   lockBtn.textContent = unlocked ? '編集を終了（閲覧のみに戻す）' : '編集する';
   lockBtn.className = 'lockbtn ' + (unlocked ? 'unlocked' : 'locked');
+  updateEditorNameLabel();
 }
 async function onLockBtn(){
   if(editUnlocked){ applyLockState(false); try{ localStorage.removeItem(EDIT_UNLOCK_KEY); }catch(e){} return; }
@@ -327,6 +380,7 @@ async function onLockBtn(){
   if(hash === EDIT_PASSWORD_HASH){
     applyLockState(true);
     try{ localStorage.setItem(EDIT_UNLOCK_KEY, '1'); }catch(e){}
+    if(getEditorName()==='不明') promptEditorName();
   }else{
     alert('パスワードが違います');
   }
@@ -719,6 +773,7 @@ function closeDaily(){
 const CLIENT_ID = Math.random().toString(36).slice(2)+Date.now().toString(36);
 let applyingRemote = false;
 let saveTimer;
+let lastKnownState = null;
 
 function collectState(){
   const rows = [...document.querySelectorAll('#ledger tbody tr')].map(r=>{
@@ -738,7 +793,12 @@ function saveAll(){
       saveMsg.textContent = '自動保存済 '+new Date().toLocaleTimeString();
     }catch(e){}
     if(window.__fb && window.__fb.enabled){
+      const changes = diffStates(lastKnownState, state);
+      if(changes.length){
+        window.__fb.pushHistory({ts:Date.now(), by:getEditorName(), summary:changes.join(' / '), state:lastKnownState});
+      }
       window.__fb.push({...state, _meta:{ts:Date.now(), by:CLIENT_ID}});
+      lastKnownState = state;
     }
   }, 400);
 }
@@ -772,17 +832,57 @@ window.addEventListener('fb-ready', ()=>{
   window.__fb.subscribe(remote=>{
     syncMsg.textContent = '共有: 同期中';
     syncMsg.style.color = '#1a7a3a';
-    if(remote && remote._meta && remote._meta.by===CLIENT_ID) return;  // 自分の書込みは無視
+    if(remote && remote._meta && remote._meta.by===CLIENT_ID){ lastKnownState = remote; return; }  // 自分の書込みは無視
     if(remote && remote.rows){
       applyState(remote);
+      lastKnownState = remote;
       saveMsg.textContent = '共有データ受信 '+new Date().toLocaleTimeString();
     }else if(first){
       // サーバ側が空 → 手元のデータを初期投入
-      window.__fb.push({...collectState(), _meta:{ts:Date.now(), by:CLIENT_ID}});
+      const initState = collectState();
+      window.__fb.push({...initState, _meta:{ts:Date.now(), by:CLIENT_ID}});
+      lastKnownState = initState;
     }
     first = false;
   });
 });
+
+// ===== 変更履歴 / Undo =====
+let historyList = [];
+async function openHistory(){
+  const body = document.getElementById('historyBody');
+  body.innerHTML = '<p class="sub">読込中...</p>';
+  document.getElementById('historyModal').style.display = 'flex';
+  if(!(window.__fb && window.__fb.enabled)){ body.innerHTML = '<p class="sub">共有未接続のため履歴はありません。</p>'; return; }
+  try{
+    historyList = await window.__fb.fetchHistory();
+  }catch(e){ body.innerHTML = '<p class="sub">履歴の取得に失敗しました。</p>'; return; }
+  renderHistory();
+}
+function closeHistory(){ document.getElementById('historyModal').style.display = 'none'; }
+function fmtTs(ts){ return ts ? new Date(ts).toLocaleString('ja-JP') : ''; }
+function renderHistory(){
+  const body = document.getElementById('historyBody');
+  if(!historyList.length){ body.innerHTML = '<p class="sub">履歴はまだありません。</p>'; return; }
+  body.innerHTML = historyList.map(h=>`
+    <div style="border-bottom:1px solid #eee;padding:8px 0;">
+      <div style="font-size:12px;color:#666;">${fmtTs(h.ts)}　編集者: ${h.by||'不明'}</div>
+      <div style="font-size:13px;margin:4px 0;">${(h.summary||'').replace(/</g,'&lt;')}</div>
+      <button class="sec mini-btn" ${isEditUnlocked()?'':'disabled'} onclick="restoreHistory('${h.key}')">この内容に戻す</button>
+    </div>`).join('');
+}
+async function restoreHistory(key){
+  if(!isEditUnlocked()){ alert('復元は編集ロック解除中のみ可能です'); return; }
+  const entry = historyList.find(h=>h.key===key);
+  if(!entry || !entry.state){ alert('この履歴には復元可能なデータがありません'); return; }
+  if(!confirm(fmtTs(entry.ts)+'（'+(entry.by||'不明')+'）の状態に戻します。よろしいですか？')) return;
+  const before = collectState();
+  window.__fb.pushHistory({ts:Date.now(), by:getEditorName(), summary:`復元: ${fmtTs(entry.ts)}(${entry.by||'不明'})時点に戻した`, state:before});
+  window.__fb.push({...entry.state, _meta:{ts:Date.now(), by:CLIENT_ID}});
+  applyState(entry.state);
+  lastKnownState = entry.state;
+  closeHistory();
+}
 
 function loadAll(){
   let state = null;
@@ -861,14 +961,41 @@ window.__fb = {enabled:false};
 if(FIREBASE_CONFIG && ROOM_ID && !ROOM_ID.startsWith('CHANGE-ME')){
   try{
     const {initializeApp} = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
-    const {getDatabase, ref, onValue, set} = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js');
+    const {getDatabase, ref, onValue, update, push}
+      = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js');
     const app = initializeApp(FIREBASE_CONFIG);
     const db = getDatabase(app);
     const roomRef = ref(db, 'rooms/'+ROOM_ID);
+    // historyはrooms配下ではなく独立パスに置く。
+    // rooms/$room に完全listen(onValue)があると、子パスへのクエリがそのlistenの
+    // ローカルキャッシュから古いデータを返すことがあるため（overlapping listener問題）
+    const historyRef = ref(db, 'history/'+ROOM_ID);
+    // JS SDKのonValue/get()は、rooms/$room上の常時listenと絡んでローカルキャッシュが
+    // 古いまま返ることがあるため（overlapping listener問題）、historyの読み書きは
+    // SDKのクエリ機構を通さずREST APIを直接叩いて確実にサーバーの最新値を取る
+    const HISTORY_REST_BASE = FIREBASE_CONFIG.databaseURL + '/history/' + ROOM_ID;
     window.__fb = {
       enabled: true,
-      push(state){ set(roomRef, state).catch(e=>console.error('sync push failed', e)); },
-      subscribe(cb){ onValue(roomRef, snap=>cb(snap.val()), e=>console.error('sync read failed', e)); },
+      // update()は指定キーのみ上書き。history等の兄弟ノードを消さない
+      push(state){ update(roomRef, state).catch(e=>console.error('sync push failed', e)); },
+      subscribe(cb){ onValue(roomRef, snap=>{ const v = snap.val(); cb(v ? {rows:v.rows, daily:v.daily, minus:v.minus, aladinC:v.aladinC, aladinH:v.aladinH, billing:v.billing, _meta:v._meta} : null); }, e=>console.error('sync read failed', e)); },
+      pushHistory(entry){
+        push(historyRef, entry).catch(e=>console.error('history push failed', e));
+        // 40件超えたら古い分を削除（容量抑制、REST経由）
+        fetch(HISTORY_REST_BASE+'.json?shallow=true').then(r=>r.json()).then(obj=>{
+          const keys = obj ? Object.keys(obj) : [];
+          const excess = keys.length - 40;
+          if(excess > 0) keys.sort().slice(0, excess).forEach(k=>{
+            fetch(HISTORY_REST_BASE+'/'+k+'.json', {method:'DELETE'}).catch(()=>{});
+          });
+        }).catch(()=>{});
+      },
+      async fetchHistory(){
+        const res = await fetch(HISTORY_REST_BASE+'.json?orderBy="$key"&limitToLast=30');
+        const obj = await res.json();
+        if(!obj) return [];
+        return Object.keys(obj).sort().reverse().map(k=>({key:k, ...obj[k]}));
+      },
     };
   }catch(e){ console.error('Firebase初期化失敗', e); }
 }
