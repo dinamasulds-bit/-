@@ -163,7 +163,7 @@
       <th rowspan="2" class="grp-rate">達成率<br>(即日)※評価</th>
       <th rowspan="2" class="grp-rate detail-col">達成率<br>(即日+予約)</th>
       <th rowspan="2" class="grp-rate detail-col">dカード<br>付帯率</th>
-      <th rowspan="2" class="grp-rate detail-col">光HS同日<br>付帯率</th>
+      <th rowspan="2" class="grp-rate detail-col">光PI同日<br>付帯率</th>
       <th rowspan="2" class="grp-rate">ペース<br>(実施中)</th>
       <th rowspan="2">日別<br>入力</th>
     </tr>
@@ -172,7 +172,7 @@
       <th class="detail-col">フロア</th><th class="detail-col">スペース名</th>
       <th class="grp-actual">HS(即日)</th>
       <th class="grp-actual">HS(予約)</th>
-      <th class="grp-actual detail-col">HS獲得世帯数<br>(委託先申告)</th>
+      <th class="grp-actual detail-col">PI獲得世帯数<br>(委託先申告)</th>
       <th class="grp-actual detail-col">dカード</th>
       <th class="grp-actual detail-col">光</th>
       <th class="grp-actual detail-col">home5G</th>
@@ -207,17 +207,17 @@
     <h3>加点ポイント</h3>
     <div class="row"><span>HS新規達成率（即日/目標）</span><span class="v" id="evHsRate">-</span></div>
     <div class="row"><span>→ ポイント（120%↑12pt / 100%↑10pt / 80%↑8pt）</span><span class="v pt" id="evHsPt">-</span></div>
-    <div class="row"><span>dカード付帯率（カード/HS世帯数）</span><span class="v" id="evCardRate">-</span></div>
+    <div class="row"><span>dカード付帯率（カード/PI即日）</span><span class="v" id="evCardRate">-</span></div>
     <div class="row"><span>→ ポイント（15%↑4pt / 10%↑2pt）</span><span class="v pt" id="evCardPt">-</span></div>
-    <div class="row"><span>光HS同日付帯率（光+home5G/HS世帯数）</span><span class="v" id="evHikariRate">-</span></div>
+    <div class="row"><span>光PI同日付帯率（光+home5G/PI世帯数）</span><span class="v" id="evHikariRate">-</span></div>
     <div class="row"><span>→ ポイント（20%↑4pt / 15%↑2pt）</span><span class="v pt" id="evHikariPt">-</span></div>
   </div>
   <div class="card">
-    <h3>付帯率 目標獲得数（HS世帯数から自動算出）</h3>
-    <div class="row"><span><b>dカード</b>（現在 <span id="tgCardNow">-</span>件）</span><span></span></div>
+    <h3>付帯率 目標獲得数（自動算出）</h3>
+    <div class="row"><span><b>dカード</b>（PI即日比・現在 <span id="tgCardNow">-</span>件）</span><span></span></div>
     <div class="row"><span>　2pt（10%）に必要</span><span class="v" id="tgCard10">-</span></div>
     <div class="row"><span>　4pt（15%）に必要</span><span class="v" id="tgCard15">-</span></div>
-    <div class="row" style="border-top:1px solid #eee;margin-top:4px;padding-top:4px;"><span><b>光+home5G</b>（現在 <span id="tgHikariNow">-</span>件）</span><span></span></div>
+    <div class="row" style="border-top:1px solid #eee;margin-top:4px;padding-top:4px;"><span><b>光+home5G</b>（PI世帯数比・現在 <span id="tgHikariNow">-</span>件）</span><span></span></div>
     <div class="row"><span>　2pt（15%）に必要</span><span class="v" id="tgHikari15">-</span></div>
     <div class="row"><span>　4pt（20%）に必要</span><span class="v" id="tgHikari20">-</span></div>
   </div>
@@ -313,7 +313,7 @@ const LS_KEY = 'event-ledger-v3';
 const MOBILE_VIEW_KEY = 'event-ledger-mobile-view';
 const DETAIL_COLS = [2,3,6,7,8,9,10,11,12,13,16,17,21,22,25,26,27,28,30,31,32];
 const EDITOR_NAME_KEY = 'event-ledger-editor-name';
-const ROW_FIELD_LABELS = ['実施週','項番','枠','支店','施設名','フロア(main)','スペース名(main)','フロア(sub)','スペース名(sub)','備考','実施規模','①サイズ','②サイズ','開始日','終了日','実施日数','コンテンツ','委託先','ディレクター','目標値','休日/日','平日/日','HS即日','HS予約','HS世帯数','dカード','光','home5G'];
+const ROW_FIELD_LABELS = ['実施週','項番','枠','支店','施設名','フロア(main)','スペース名(main)','フロア(sub)','スペース名(sub)','備考','実施規模','①サイズ','②サイズ','開始日','終了日','実施日数','コンテンツ','委託先','ディレクター','目標値','休日/日','平日/日','HS即日','HS予約','PI世帯数','dカード','光','home5G'];
 function getEditorName(){
   let name = null;
   try{ name = localStorage.getItem(EDITOR_NAME_KEY); }catch(e){}
@@ -393,7 +393,7 @@ function initLockState(){
 const DAY_FIELDS = [
   {key:'p1', label:'HS(即日)', col:23},
   {key:'p2', label:'HS(予約)', col:24},
-  {key:'ss', label:'HS世帯数', col:25},
+  {key:'ss', label:'PI世帯数', col:25},
   {key:'card', label:'dカード', col:26},
   {key:'hk', label:'光', col:27},
   {key:'h5', label:'home5G', col:28},
@@ -555,7 +555,7 @@ function updateAll(){
     c[STATUS_COL].className = 'st '+cls;
     setRate(c[29], n(c[23]), n(c[TARGET_IDX]), true);
     setRate(c[30], n(c[23])+n(c[24]), n(c[TARGET_IDX]), true);
-    setRate(c[31], n(c[26]), n(c[25]), false);
+    setRate(c[31], n(c[26]), n(c[23]), false);
     setRate(c[32], n(c[27])+n(c[28]), n(c[25]), false);
     setPace(c, c[PACE_COL]);
     a1+=n(c[23]); aT+=n(c[TARGET_IDX]); aS+=n(c[25]); aC+=n(c[26]); aH+=n(c[27]); a5+=n(c[28]);
@@ -572,11 +572,11 @@ function updateAll(){
   sumH5g.textContent = s5.toLocaleString();
   setRate(totalRate1, s1, sumT, true);
   setRate(totalRate2, s1+s2, sumT, true);
-  setRate(totalCardRate, sc, ss, false);
+  setRate(totalCardRate, sc, s1, false);
   setRate(totalFutai, sh+s5, ss, false);
 
   // 評価サマリ
-  const hsR = pct(a1, aT), cR = pct(aC, aS), hR = pct(aH+a5, aS);
+  const hsR = pct(a1, aT), cR = pct(aC, a1), hR = pct(aH+a5, aS);
   const downC = evAladinCard.checked, downH = evAladinHikari.checked;
   const p1 = hsPt(hsR), p2 = cardPt(cR, downC), p3 = hikariPt(hR, downH);
   const minus = Number(evMinus.value)||0;
@@ -589,17 +589,17 @@ function updateAll(){
   evHikariRate.textContent = fmt(hR)||'-';
   evHikariPt.textContent = p3+'pt'+(downH?'（乖離DOWN）':'');
 
-  function tg(el, nowCount, rateTh){
-    if(aS<=0){ el.textContent='-'; el.className='v'; return; }
-    const need = Math.ceil(aS*rateTh/100);
+  function tg(el, nowCount, rateTh, base){
+    if(base<=0){ el.textContent='-'; el.className='v'; return; }
+    const need = Math.ceil(base*rateTh/100);
     const rest = need-nowCount;
     el.textContent = need+'件'+(rest>0 ? '（あと'+rest+'件）' : '（達成済）');
     el.className = 'v '+(rest>0?'ng':'ok');
   }
   tgCardNow.textContent = aC.toLocaleString();
   tgHikariNow.textContent = (aH+a5).toLocaleString();
-  tg(tgCard10, aC, 10); tg(tgCard15, aC, 15);
-  tg(tgHikari15, aH+a5, 15); tg(tgHikari20, aH+a5, 20);
+  tg(tgCard10, aC, 10, a1); tg(tgCard15, aC, 15, a1);
+  tg(tgHikari15, aH+a5, 15, aS); tg(tgHikari20, aH+a5, 20, aS);
 
   evTotalPt.textContent = total+'pt';
   evTotalPt.className = 'v pt '+(total>=24?'ok':'ng');
@@ -913,7 +913,7 @@ function resetAll(){
 
 // ===== CSV出力 =====
 function exportCsv(){
-  const heads = ['状態','実施週','項番','枠','支店','施設名','①フロア','①スペース名','②フロア','②スペース名','備考','実施規模','①サイズ','②サイズ','開始日','終了日','実施日数','コンテンツ','委託先','ディレクター','目標値','休日/日','平日/日','HS即日','HS予約','HS世帯数(申告)','dカード','光','home5G','達成率(即日)','達成率(即日+予約)','dカード付帯率','光付帯率','ペース'];
+  const heads = ['状態','実施週','項番','枠','支店','施設名','①フロア','①スペース名','②フロア','②スペース名','備考','実施規模','①サイズ','②サイズ','開始日','終了日','実施日数','コンテンツ','委託先','ディレクター','目標値','休日/日','平日/日','HS即日','HS予約','PI世帯数(申告)','dカード','光','home5G','達成率(即日)','達成率(即日+予約)','dカード付帯率','光付帯率','ペース'];
   const lines = [heads.join(',')];
   document.querySelectorAll('#ledger tbody tr').forEach(r=>{
     const vals = [...r.cells].filter((_,i)=>i!==DAY_COL).map(td=>'"'+cellText(td).replace(/"/g,'""')+'"');
