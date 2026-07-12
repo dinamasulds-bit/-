@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>首都圏支社イベント実績管理簿</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2b4c7e">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="イベント実績簿">
 <style>
   :root{
     --navy:#1e3a5f; --navy2:#2b4c7e; --accent:#3b6ea5; --accent-light:#eef3fa;
@@ -71,6 +77,16 @@
   .toast.ok{background:#1a7a3a;}
   .toast.warn{background:#8a6d00;}
   .toast.info{background:#1f2937;}
+
+  /* かんたん入力 */
+  .ez-field{margin-bottom:14px;}
+  .ez-field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;font-weight:600;}
+  .ez-field select,.ez-field input[type=date]{width:100%;padding:11px;font-size:16px;border:1px solid #ccd4e0;border-radius:9px;background:#fff;font-family:inherit;}
+  .ez-stepper{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0f2f5;gap:10px;}
+  .ez-stepper-label{font-size:13px;font-weight:700;color:var(--text);flex:1;}
+  .ez-stepper-controls{display:flex;align-items:center;gap:8px;}
+  .ez-step-btn{width:42px;height:42px;border-radius:10px;font-size:20px;font-weight:700;padding:0;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .ez-input{width:66px;text-align:center;font-size:19px;font-weight:700;padding:9px 2px;border:1px solid #ccd4e0;border-radius:9px;font-family:inherit;}
 
   .rules{background:var(--accent-light);border:1px solid #d7e3f3;border-left:4px solid var(--accent);border-radius:var(--radius-sm);
     padding:12px 16px;font-size:12px;margin-bottom:14px;line-height:1.75;color:#31415a;}
@@ -207,6 +223,7 @@
 </div>
 
 <div class="tab-panel" id="tab-overview">
+<button onclick="openEasy()" style="width:100%;background:#1a7a3a;border-color:#1a7a3a;font-size:15px;padding:14px;margin-bottom:16px;">📝 今日の実績をかんたん入力</button>
 <h2>今月の進捗ひと目</h2>
 <div class="kpi-grid">
   <div class="kpi-card">
@@ -252,6 +269,7 @@
   <label>支店: <select id="fBranch" onchange="applyFilter()"><option value="">全て</option></select></label>
   <label>状態: <select id="fStatus" onchange="applyFilter()"><option value="">全て</option><option>開催前</option><option>実施中</option><option>終了</option></select></label>
   <label>ディレクター: <select id="fDirector" onchange="applyFilter()"><option value="">全て</option></select></label>
+  <button onclick="openEasy()" style="background:#1a7a3a;border-color:#1a7a3a;">📝 かんたん入力</button>
   <button id="addRowBtn" onclick="addRow();saveAll()">行追加</button>
   <button class="sec" onclick="exportCsv()">CSV出力</button>
   <button class="sec" onclick="window.print()">印刷</button>
@@ -395,6 +413,25 @@
 <div id="toastHost" class="toast-host"></div>
 
 <datalist id="dirList"></datalist>
+
+<div id="easyModal" class="modal-bg" style="display:none" onclick="if(event.target===this)closeEasy()">
+  <div class="modal" style="width:min(420px,92vw);">
+    <div class="modal-head"><b>かんたん入力</b><button class="sec" onclick="closeEasy()">閉じる</button></div>
+    <div class="sub">施設と日付を選んで数字をポン。保存すると即反映されます。</div>
+    <div id="ezLockMsg" class="verdict ng" style="display:none;">編集ロック解除中のみ入力できます。ツールバーの「編集する」から解除してください。</div>
+    <div class="ez-field">
+      <label>施設（実施中を優先表示）</label>
+      <select id="ezFacility" onchange="onEzFacilityChange()"></select>
+    </div>
+    <div class="ez-field">
+      <label>日付</label>
+      <input type="date" id="ezDate" onchange="onEzDateChange()">
+    </div>
+    <div class="sub" id="ezTargetHint" style="margin-bottom:6px;"></div>
+    <div id="ezFields"></div>
+    <button id="ezSaveBtn" onclick="saveEasyInput()" style="width:100%;margin-top:14px;font-size:15px;padding:13px;">この内容を保存</button>
+  </div>
+</div>
 
 <div id="dayModal" class="modal-bg" style="display:none" onclick="if(event.target===this)closeDaily()">
   <div class="modal">
@@ -961,6 +998,78 @@ function closeDaily(){
   currentDayRow = null;
 }
 
+// ===== かんたん入力（施設を選んで今日の数字を1画面で） =====
+function todayIso(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function openEasy(){
+  const rows = [...document.querySelectorAll('#ledger tbody tr')];
+  if(!rows.length) return;
+  const order = {'実施中':0,'開催前':1,'終了':2,'':3};
+  const opts = rows.map((r,i)=>({i, label:`${r.cells[STATUS_COL].textContent||''} ${r.cells[5].textContent}（${r.cells[1].textContent} 項番${r.cells[2].textContent}）`, st:r.cells[STATUS_COL].textContent}))
+    .sort((a,b)=>(order[a.st]??9)-(order[b.st]??9));
+  ezFacility.innerHTML = opts.map(o=>`<option value="${o.i}">${o.label}</option>`).join('');
+  ezDate.value = todayIso();
+  onEzFacilityChange();
+  ezLockMsg.style.display = isEditUnlocked() ? 'none' : 'block';
+  ezSaveBtn.disabled = !isEditUnlocked();
+  easyModal.style.display = 'flex';
+}
+function closeEasy(){ easyModal.style.display = 'none'; }
+function ezRow(){
+  const idx = Number(ezFacility.value);
+  return document.querySelectorAll('#ledger tbody tr')[idx];
+}
+function renderEzFields(){
+  const r = ezRow(); if(!r) return;
+  const c = r.cells;
+  const rowIdx = Number(ezFacility.value);
+  const key = String(rowIdx);
+  const iso = ezDate.value;
+  const vals = (dailyData[key] && dailyData[key][iso]) || {};
+  ezFields.innerHTML = DAY_FIELDS.map(f=>`
+    <div class="ez-stepper">
+      <div class="ez-stepper-label">${f.label}</div>
+      <div class="ez-stepper-controls">
+        <button class="sec ez-step-btn" type="button" onclick="ezStep('${f.key}',-1)" ${isEditUnlocked()?'':'disabled'}>−</button>
+        <input type="number" inputmode="numeric" pattern="[0-9]*" min="0" class="ez-input" id="ez-${f.key}" value="${vals[f.key]??''}" ${isEditUnlocked()?'':'disabled'}>
+        <button class="ez-step-btn" type="button" onclick="ezStep('${f.key}',1)" ${isEditUnlocked()?'':'disabled'}>＋</button>
+      </div>
+    </div>`).join('');
+  const s = parseJpDate(c[14].textContent);
+  const holT = n(c[HOL_IDX]), wkT = n(c[WK_IDX]);
+  const d = new Date(iso+'T00:00:00');
+  const tgt = isHol(d) ? holT : wkT;
+  ezTargetHint.textContent = s ? `この日の目標: ${tgt}件（${isHol(d)?'休日':'平日'}）` : '';
+}
+function onEzFacilityChange(){ renderEzFields(); }
+function onEzDateChange(){ renderEzFields(); }
+function ezStep(key, delta){
+  const el = document.getElementById('ez-'+key);
+  if(!el) return;
+  el.value = Math.max(0, (Number(el.value)||0) + delta);
+}
+function saveEasyInput(){
+  if(!isEditUnlocked()){ alert('編集ロック解除中のみ保存できます'); return; }
+  const rowIdx = Number(ezFacility.value);
+  const iso = ezDate.value;
+  if(!iso){ alert('日付を選んでください'); return; }
+  const key = String(rowIdx);
+  dailyData[key] = dailyData[key] || {};
+  dailyData[key][iso] = dailyData[key][iso] || {};
+  DAY_FIELDS.forEach(f=>{
+    const el = document.getElementById('ez-'+f.key);
+    const v = el ? el.value : '';
+    dailyData[key][iso][f.key] = v===''? undefined : Number(v);
+  });
+  applyDailyToRow(rowIdx);
+  updateAll();
+  saveAll();
+  const facilityName = ezRow().cells[5].textContent;
+  showToast(facilityName+'（'+iso+'）を保存しました', 'ok');
+}
+
 // ===== 保存/復元 =====
 const CLIENT_ID = Math.random().toString(36).slice(2)+Date.now().toString(36);
 let applyingRemote = false;
@@ -1126,6 +1235,10 @@ initTab();
 [...new Set(DATA.map(d=>d[0]))].sort().forEach(v=>fWeek.add(new Option(v,v)));
 [...new Set(DATA.map(d=>d[3]))].sort().forEach(v=>fBranch.add(new Option(v,v)));
 updateAll();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+}
 </script>
 
 <!-- ===== Firebase同期（設定するとチームで入力共有） ===== -->
