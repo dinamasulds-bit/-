@@ -38,6 +38,39 @@
   .tab-btn.active{color:var(--navy);background:var(--card);box-shadow:0 -1px 0 var(--border) inset;border:1px solid var(--border);border-bottom:1px solid var(--card);}
   .tab-panel{background:var(--card);border:1px solid var(--border);border-radius:0 var(--radius) var(--radius) var(--radius);
     padding:18px;box-shadow:var(--shadow);}
+  .tab-panel.tab-hidden{display:none;}
+  .tab-panel{animation:tabIn .22s ease;}
+  @keyframes tabIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+  @media (prefers-reduced-motion:reduce){.tab-panel{animation:none;}}
+
+  /* KPI概観 */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:14px;}
+  .kpi-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);
+    display:flex;flex-direction:column;gap:6px;}
+  .kpi-card.small{padding:12px 16px;gap:2px;}
+  .kpi-label{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.02em;}
+  .kpi-value{font-size:28px;font-weight:800;color:var(--navy);line-height:1.15;}
+  .kpi-card.small .kpi-value{font-size:22px;}
+  .kpi-value.ok{color:var(--ok);} .kpi-value.ng{color:var(--ng);}
+  .kpi-sub{font-size:12px;font-weight:700;padding:3px 9px;border-radius:6px;display:inline-block;width:fit-content;background:#eef1f6;color:var(--muted);}
+  .kpi-sub.ok{background:var(--ok-bg);color:var(--ok);} .kpi-sub.ng{background:var(--ng-bg);color:var(--ng);}
+  .kpi-bar{position:relative;background:#e8ecf2;border-radius:6px;height:8px;overflow:hidden;margin-top:4px;}
+  .kpi-bar i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#2b8a4a,#38a55c);border-radius:6px;}
+  .kpi-bar i.ng{background:linear-gradient(90deg,#c0392b,#d9584a);}
+  .pace-chip-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px;}
+  .pace-chip{font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;}
+  .pace-chip.ok{background:var(--ok-bg);color:var(--ok);}
+  .pace-chip.warn{background:var(--warn-bg);color:var(--warn);}
+  .pace-chip.ng{background:var(--ng-bg);color:var(--ng);}
+
+  /* トースト通知 */
+  .toast-host{position:fixed;right:18px;bottom:18px;z-index:300;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none;}
+  .toast{background:#1f2937;color:#fff;padding:10px 16px;border-radius:9px;font-size:12.5px;box-shadow:var(--shadow-lg);
+    opacity:0;transform:translateY(10px);transition:opacity .25s ease,transform .25s ease;max-width:320px;}
+  .toast.show{opacity:1;transform:translateY(0);}
+  .toast.ok{background:#1a7a3a;}
+  .toast.warn{background:#8a6d00;}
+  .toast.info{background:#1f2937;}
 
   .rules{background:var(--accent-light);border:1px solid #d7e3f3;border-left:4px solid var(--accent);border-radius:var(--radius-sm);
     padding:12px 16px;font-size:12px;margin-bottom:14px;line-height:1.75;color:#31415a;}
@@ -124,8 +157,10 @@
   }
   /* 状態列を横スクロール中も固定表示 */
   th:nth-child(1),td:nth-child(1){position:sticky;left:0;z-index:2;box-shadow:2px 0 3px rgba(0,0,0,.08);}
-  thead th:nth-child(1){z-index:3;}
+  thead th:nth-child(1){z-index:6;top:0;}
   tfoot td:nth-child(1){background:#eef1f6;}
+  /* 縦スクロール中もヘッダー行を固定表示 */
+  .wrap thead{position:sticky;top:0;z-index:5;}
   /* 簡易表示: 詳細列を隠す */
   table.simple-view .detail-col{display:none;}
   @media (max-width:640px){
@@ -164,13 +199,46 @@
     <h1>首都圏支社イベント実績管理簿（2026年7月）</h1>
   </div>
   <div class="tabs">
-    <button class="tab-btn active" data-tab="ledger" onclick="switchTab('ledger')">📋 台帳</button>
+    <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">🏠 概観</button>
+    <button class="tab-btn" data-tab="ledger" onclick="switchTab('ledger')">📋 台帳</button>
     <button class="tab-btn" data-tab="eval" onclick="switchTab('eval')">💯 評価サマリ</button>
     <button class="tab-btn" data-tab="summary" onclick="switchTab('summary')">📊 集計</button>
   </div>
 </div>
 
-<div class="tab-panel" id="tab-ledger">
+<div class="tab-panel" id="tab-overview">
+<h2>今月の進捗ひと目</h2>
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="kpi-label">HS新規達成率（即日/目標）</div>
+    <div class="kpi-value" id="ovHsRate">-</div>
+    <div class="kpi-bar"><i id="ovHsBar" style="width:0%"></i></div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">委託先評価 合計</div>
+    <div class="kpi-value" id="ovTotalPt">-</div>
+    <div class="kpi-sub" id="ovPtVerdict">-</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">CPA（請求額/件）</div>
+    <div class="kpi-value" id="ovCpa">-</div>
+    <div class="kpi-sub" id="ovCpaVerdict">請求額未入力</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">実施中イベントのペース</div>
+    <div class="kpi-value" id="ovPaceCount">-</div>
+    <div class="pace-chip-row" id="ovPaceChips"></div>
+  </div>
+</div>
+<div class="kpi-grid">
+  <div class="kpi-card small"><div class="kpi-label">開催前</div><div class="kpi-value" id="ovCountBefore">-</div></div>
+  <div class="kpi-card small"><div class="kpi-label">実施中</div><div class="kpi-value" id="ovCountOngoing">-</div></div>
+  <div class="kpi-card small"><div class="kpi-label">終了</div><div class="kpi-value" id="ovCountDone">-</div></div>
+  <div class="kpi-card small"><div class="kpi-label">HS即日 累計</div><div class="kpi-value" id="ovHsCount2">-</div></div>
+</div>
+</div><!-- /tab-overview -->
+
+<div class="tab-panel tab-hidden" id="tab-ledger">
 <div class="rules">
   <b>●HS新規</b>：PI、純粋新規　※ドコモのMVNOはカウント対象外　※<b>委託先評価は当日成約（PI即日）のみ対象</b>。同点の場合は後日含み実績を参考<br>
   <b>●ドコモ光PI同日付帯率</b>：ドコモ光+home5G獲得数 ／ PI獲得世帯数（委託先申告）　※<span class="warn">申告数とALADIN実績に乖離がある場合、加点ポイント1ランクダウン</span><br>
@@ -192,7 +260,6 @@
   <button class="lockbtn" id="lockBtn" onclick="onLockBtn()">編集する</button>
   <button class="sec" onclick="openHistory()">変更履歴</button>
   <span class="savemsg" id="editorNameLabel" style="cursor:pointer;text-decoration:underline;" onclick="promptEditorName()"></span>
-  <span class="savemsg" id="saveMsg"></span>
   <span class="savemsg" id="syncMsg" style="color:#c0392b;">共有: 未接続（ローカルのみ）</span>
 </div>
 
@@ -264,7 +331,7 @@
 </div>
 </div><!-- /tab-ledger -->
 
-<div class="tab-panel" id="tab-eval" style="display:none">
+<div class="tab-panel tab-hidden" id="tab-eval">
 <h2>委託先評価サマリ（全行集計・月次）</h2>
 <div class="panel">
   <div class="card">
@@ -303,7 +370,7 @@
 </div>
 </div><!-- /tab-eval -->
 
-<div class="tab-panel" id="tab-summary" style="display:none">
+<div class="tab-panel tab-hidden" id="tab-summary">
 <h2>ディレクター別サマリ</h2>
 <table class="mini" id="directorSummary">
   <thead><tr><th>ディレクター</th><th>件数</th><th>目標計</th><th>HS即日</th><th>HS予約</th><th>dカード</th><th>光+5G</th><th>達成率(即日)</th><th style="min-width:140px">進捗</th></tr></thead>
@@ -324,6 +391,8 @@
 </div><!-- /tab-summary -->
 
 </div><!-- /.page -->
+
+<div id="toastHost" class="toast-host"></div>
 
 <datalist id="dirList"></datalist>
 
@@ -617,21 +686,36 @@ function updateAll(){
   const rows = [...document.querySelectorAll('#ledger tbody tr')];
   let sumT=0, s1=0, s2=0, ss=0, sc=0, sh=0, s5=0;
   let a1=0, aT=0, aS=0, aC=0, aH=0, a5=0;
+  let cntBefore=0, cntOngoing=0, cntDone=0, paceOk=0, paceWarn=0, paceNg=0;
   rows.forEach(r=>{
     const c = r.cells;
     const [label, cls] = rowStatus(c);
     c[STATUS_COL].textContent = label;
     c[STATUS_COL].className = 'st '+cls;
+    if(cls==='before') cntBefore++; else if(cls==='ongoing') cntOngoing++; else if(cls==='done') cntDone++;
     setRate(c[29], n(c[23]), n(c[TARGET_IDX]), true);
     setRate(c[30], n(c[23])+n(c[24]), n(c[TARGET_IDX]), true);
     setRate(c[31], n(c[26]), n(c[23]), false);
     setRate(c[32], n(c[27])+n(c[28]), n(c[25]), false);
     setPace(c, c[PACE_COL]);
+    if(cls==='ongoing'){
+      const pt = c[PACE_COL].textContent;
+      if(pt.startsWith('順調')) paceOk++; else if(pt.startsWith('やや遅れ')) paceWarn++; else if(pt.startsWith('遅れ')) paceNg++;
+    }
     a1+=n(c[23]); aT+=n(c[TARGET_IDX]); aS+=n(c[25]); aC+=n(c[26]); aH+=n(c[27]); a5+=n(c[28]);
     if(r.style.display==='none') return;
     sumT += n(c[TARGET_IDX]);
     s1+=n(c[23]); s2+=n(c[24]); ss+=n(c[25]); sc+=n(c[26]); sh+=n(c[27]); s5+=n(c[28]);
   });
+  ovCountBefore.textContent = cntBefore;
+  ovCountOngoing.textContent = cntOngoing;
+  ovCountDone.textContent = cntDone;
+  ovHsCount2.textContent = a1.toLocaleString()+'件';
+  ovPaceCount.textContent = cntOngoing ? cntOngoing+'件 実施中' : '実施中なし';
+  ovPaceChips.innerHTML = cntOngoing===0 ? '<span class="sub" style="margin:0;">現在実施中のイベントはありません</span>' :
+    [ paceOk?`<span class="pace-chip ok">順調 ${paceOk}</span>`:'',
+      paceWarn?`<span class="pace-chip warn">やや遅れ ${paceWarn}</span>`:'',
+      paceNg?`<span class="pace-chip ng">遅れ ${paceNg}</span>`:'' ].filter(Boolean).join('');
   sumTarget.textContent = sumT.toLocaleString();
   sumPi1.textContent = s1.toLocaleString();
   sumPi2.textContent = s2.toLocaleString();
@@ -653,6 +737,9 @@ function updateAll(){
 
   evHsRate.textContent = fmt(hsR)||'-';
   evHsPt.textContent = p1+'pt';
+  ovHsRate.textContent = fmt(hsR)||'-';
+  ovHsBar.style.width = Math.min(hsR||0,100)+'%';
+  ovHsBar.className = (hsR!==null && hsR>=100) ? '' : 'ng';
   evCardRate.textContent = fmt(cR)||'-';
   evCardPt.textContent = p2+'pt'+(downC?'（乖離DOWN）':'');
   evHikariRate.textContent = fmt(hR)||'-';
@@ -674,6 +761,10 @@ function updateAll(){
   evTotalPt.className = 'v pt '+(total>=24?'ok':'ng');
   evPtVerdict.textContent = total>=24 ? '足切り基準(24pt)クリア' : '足切り基準(24pt)未達 → 契約終了リスク';
   evPtVerdict.className = 'verdict '+(total>=24?'ok':'ng');
+  ovTotalPt.textContent = total+'pt';
+  ovTotalPt.className = 'kpi-value '+(total>=24?'ok':'ng');
+  ovPtVerdict.textContent = total>=24 ? '足切り基準クリア' : '足切り未達';
+  ovPtVerdict.className = 'kpi-sub '+(total>=24?'ok':'ng');
 
   evHsCount.textContent = a1.toLocaleString()+'件';
   const billing = Number(evBilling.value)||0;
@@ -685,9 +776,15 @@ function updateAll(){
       : cpa<=50000 ? '足切りクリア（目標4万円は未達）'
       : '足切り基準(5万円/件)超過 → 契約終了リスク';
     evCpaVerdict.className = 'verdict '+(cpa<=50000?'ok':'ng');
+    ovCpa.textContent = Math.round(cpa).toLocaleString()+'円/件';
+    ovCpa.className = 'kpi-value '+(cpa<=50000?'ok':'ng');
+    ovCpaVerdict.textContent = cpa<=40000 ? '目標クリア' : cpa<=50000 ? '足切りクリア' : '足切り基準超過';
+    ovCpaVerdict.className = 'kpi-sub '+(cpa<=50000?'ok':'ng');
   }else{
     evCpa.textContent = '-'; evCpa.className='v pt';
     evCpaVerdict.textContent = '請求額を入力'; evCpaVerdict.className='verdict';
+    ovCpa.textContent = '-'; ovCpa.className = 'kpi-value';
+    ovCpaVerdict.textContent = '請求額未入力'; ovCpaVerdict.className = 'kpi-sub';
   }
 
   groupSummary('directorSummary', DIRECTOR_IDX, true);
@@ -748,14 +845,27 @@ function initSimpleView(){
 // ===== タブ切替 =====
 const ACTIVE_TAB_KEY = 'event-ledger-active-tab';
 function switchTab(name){
-  document.querySelectorAll('.tab-panel').forEach(p=>{ p.style.display = (p.id==='tab-'+name) ? '' : 'none'; });
+  document.querySelectorAll('.tab-panel').forEach(p=>{ p.classList.toggle('tab-hidden', p.id!=='tab-'+name); });
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
   try{ localStorage.setItem(ACTIVE_TAB_KEY, name); }catch(e){}
 }
 function initTab(){
   let saved = null;
   try{ saved = localStorage.getItem(ACTIVE_TAB_KEY); }catch(e){}
-  switchTab(saved && document.getElementById('tab-'+saved) ? saved : 'ledger');
+  switchTab(saved && document.getElementById('tab-'+saved) ? saved : 'overview');
+}
+
+// ===== トースト通知 =====
+function showToast(msg, kind){
+  const host = document.getElementById('toastHost');
+  if(!host) return;
+  const t = document.createElement('div');
+  t.className = 'toast '+(kind||'info');
+  t.textContent = msg;
+  host.appendChild(t);
+  void t.offsetHeight; // 強制reflowでトランジションを確実に発火（非表示タブでのrAF抑制対策）
+  t.classList.add('show');
+  setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(), 300); }, 2600);
 }
 
 // ===== 日別入力 =====
@@ -872,7 +982,7 @@ function saveAll(){
   saveTimer = setTimeout(()=>{
     const state = collectState();
     try{ localStorage.setItem(LS_KEY, JSON.stringify(state));
-      saveMsg.textContent = '自動保存済 '+new Date().toLocaleTimeString();
+      showToast('自動保存済 '+new Date().toLocaleTimeString(), 'ok');
     }catch(e){}
     if(window.__fb && window.__fb.enabled){
       const changes = diffStates(lastKnownState, state);
@@ -918,7 +1028,7 @@ window.addEventListener('fb-ready', ()=>{
     if(remote && remote.rows){
       applyState(remote);
       lastKnownState = remote;
-      saveMsg.textContent = '共有データ受信 '+new Date().toLocaleTimeString();
+      if(!first) showToast('他の端末の変更を受信しました', 'info');
     }else if(first){
       // サーバ側が空 → 手元のデータを初期投入
       const initState = collectState();
@@ -976,7 +1086,6 @@ function loadAll(){
     evAladinCard.checked = !!state.aladinC;
     evAladinHikari.checked = !!state.aladinH;
     evBilling.value = state.billing||'';
-    saveMsg.textContent = '保存データ復元済';
   }else{
     DATA.forEach(d=>addRow(convData(d)));
   }
