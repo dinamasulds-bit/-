@@ -210,6 +210,10 @@
   select.claim-status.st-inprogress{background:#fff3cd;color:#8a6d00;border-color:#e6b800;}
   select.claim-status.st-done{background:var(--ok-bg);color:var(--ok);border-color:var(--ok);}
   #claimsTable td{min-width:90px;}
+  /* 連携情報（連絡先）*/
+  table.pre-wrap-table{white-space:normal;}
+  table.pre-wrap-table td{white-space:pre-wrap;vertical-align:top;line-height:1.5;}
+  table.pre-wrap-table td[contenteditable]:focus{white-space:pre-wrap;}
   body.view-only td[contenteditable]{background:#fafbfc;cursor:default;}
   body.view-only input.dir{cursor:default;}
 </style>
@@ -226,6 +230,7 @@
     <button class="tab-btn" data-tab="eval" onclick="switchTab('eval')">💯 評価サマリ</button>
     <button class="tab-btn" data-tab="summary" onclick="switchTab('summary')">📊 集計</button>
     <button class="tab-btn" data-tab="claims" onclick="switchTab('claims')">⚠️ クレーム</button>
+    <button class="tab-btn" data-tab="contacts" onclick="switchTab('contacts')">🤝 連携情報</button>
   </div>
 </div>
 
@@ -440,6 +445,45 @@
 </div>
 </div><!-- /tab-claims -->
 
+<div class="tab-panel tab-hidden" id="tab-contacts">
+<h2>連携情報（連絡先）— 2026年7月</h2>
+<div class="sub">支店連絡先・代理店（現場）連絡先をイベントごとに一覧表示。委託先申告ベースのため月次で更新が必要。</div>
+<div class="toolbar">
+  <button id="addContactBtn" onclick="addContactRow();saveAll()">連絡先追加</button>
+</div>
+<div class="wrap">
+<table id="contactsTable" class="pre-wrap-table">
+  <thead>
+    <tr>
+      <th rowspan="2" style="min-width:50px">週</th>
+      <th rowspan="2" style="min-width:50px">項番</th>
+      <th rowspan="2" style="min-width:140px">施設名</th>
+      <th rowspan="2" style="min-width:80px">開始日</th>
+      <th rowspan="2" style="min-width:80px">終了日</th>
+      <th colspan="3">連携店舗</th>
+      <th colspan="4" class="grp-actual">支店連絡先</th>
+      <th colspan="4" class="grp-rate">代理店さま連絡先</th>
+      <th rowspan="2" style="min-width:200px">備考</th>
+    </tr>
+    <tr>
+      <th style="min-width:160px">代表</th>
+      <th style="min-width:160px">連携②</th>
+      <th style="min-width:160px">連携③</th>
+      <th class="grp-actual" style="min-width:130px">担当者名</th>
+      <th class="grp-actual" style="min-width:110px">部署名</th>
+      <th class="grp-actual" style="min-width:150px">連絡先</th>
+      <th class="grp-actual" style="min-width:200px">メールアドレス</th>
+      <th class="grp-rate" style="min-width:130px">担当者名</th>
+      <th class="grp-rate" style="min-width:110px">部署名</th>
+      <th class="grp-rate" style="min-width:150px">連絡先</th>
+      <th class="grp-rate" style="min-width:200px">メールアドレス</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+</div>
+</div><!-- /tab-contacts -->
+
 </div><!-- /.page -->
 
 <div id="toastHost" class="toast-host"></div>
@@ -566,6 +610,35 @@ function updateClaimsSummary(){
   if(el) el.textContent = `合計 ${rows.length}件　未対応 ${counts['未対応']}件 / 対応中 ${counts['対応中']}件 / 対応済 ${counts['対応済']}件`;
 }
 
+// ===== 連携情報（連絡先）2026年7月 =====
+const CONTACT_COLS = 17;
+const CONTACT_FIELD_LABELS = ['実施週','項番','施設名','開始日','終了日','代表(連携店舗)','連携②','連携③','支店担当者名','支店部署名','支店連絡先','支店メール','代理店担当者名','代理店部署名','代理店連絡先','代理店メール','備考'];
+const CONTACT_DATA = [["3W", "17", "トレッサ横浜", "7月17日", "7月20日", "神）ドコモショップトレッサ横浜店", "神）ドコモショップ綱島店", "神）ドコモショップ横浜モアーズ店", "鈴木　宏幸", "神奈川支店営業部営業担当", "090-1425-0883", "hiroyuki.suzuki.fg@nttdocomo.com", "天野店長・森川副店長・和田副店長", "トレッサ横浜店", "045-542-7282", "y.amano@kcs.ne.jp; emorikawa@kcs.ne.jp; m083182wad@kcs.ne.jp", "天野店長異動の可能性有"], ["1W", "21", "ららぽーと海老名", "7月1日", "7月5日", "神）ドコモショップ海老名西口店", "神）ドコモショップ久里浜店", "神）ドコモショップ武蔵小杉店", "６月中連絡先：吉野　由夏\n7月以降担当：杉森", "営業部", "吉野　080-2180-9272（6月まで）\n杉森　　080-2212-8090（7月以降）", "yuka.yoshino.tx@nttdocomo.com（6月まで）\nkousuke.sugimori.xg@s1.nttdocomo.com（7月以降）\ntae.takayama.kd@nttdocomo.com（7月以降）\nikemoto@nttdocomo.com（7月以降）", "山﨑店長", "ドコモショップ海老名西口店", "090-7198-7193", "m-yamazaki@t-gaia.co.jp", "６月中連絡先：吉野　由夏\t神奈川支店営業部営業担当\t080-2180-9272\tyuka.yoshino.tx@nttdocomo.com"], ["2W", "22", "ららぽーと海老名", "7月8日", "7月12日", "神）ドコモショップ海老名西口店", "神）ドコモショップ久里浜店", "神）ドコモショップ武蔵小杉店", "６月中連絡先：吉野　由夏\n7月以降担当：杉森", "営業部", "吉野　080-2180-9272（6月まで）\n杉森　　080-2212-8090（7月以降）", "yuka.yoshino.tx@nttdocomo.com（6月まで）\nkousuke.sugimori.xg@s1.nttdocomo.com（7月以降）\ntae.takayama.kd@nttdocomo.com（7月以降）\nikemoto@nttdocomo.com（7月以降）", "山﨑店長", "ドコモショップ海老名西口店", "090-7198-7193", "m-yamazaki@t-gaia.co.jp", "６月中連絡先：吉野　由夏\t神奈川支店営業部営業担当\t080-2180-9272\tyuka.yoshino.tx@nttdocomo.com"], ["1W", "29", "アリオ橋本", "7月4日", "7月5日", "神）ドコモショップアリオ橋本店", "神）ドコモショップミウィ橋本店", "多）ドコモショップ八王子ユ－ロ－ド店", "齋藤/坂上", "神奈川支店営業部営業担当", "\t090-1115-3814/\t080-2908-1942", "\thikaru.saitou.be@s1.nttdocomo.com/yuuki.sakaue.ph@nttdocomo.com", "一和田店長/大野副店長", "ドコモショップアリオ橋本店", "080-1284-7709／080-9278-2314", "ds.ario-hashimoto-t@itx-corp.co.jp／ds.ario-hashimoto-f@itx-corp.co.jp", ""], ["4W", "32", "アリオ橋本", "7月25日", "7月26日", "神）ドコモショップアリオ橋本店", "神）ドコモショップミウィ橋本店", "多）ドコモショップ八王子ユ－ロ－ド店", "齋藤/坂上", "神奈川支店営業部営業担当", "\t090-1115-3814/\t080-2908-1942", "\thikaru.saitou.be@s1.nttdocomo.com/yuuki.sakaue.ph@nttdocomo.com", "一和田店長/大野副店長", "ドコモショップアリオ橋本店", "080-1284-7709／080-9278-2314", "ds.ario-hashimoto-t@itx-corp.co.jp／ds.ario-hashimoto-f@itx-corp.co.jp", ""], ["1W", "33", "アリオ西新井", "7月4日", "7月5日", "東）ドコモショップアリオ西新井店", "", "", "秋元晃介", "東京支店営業部", "090-8683-1966", "kousuke.akimoto.av@nttdocomo.com", "佐藤店長", "アリオ西新井店", "080-8760-6996", "ds.nishiarai-t@itx-corp.co.jp", ""], ["2W", "34", "アリオ西新井", "7月11日", "7月12日", "東）ドコモショップアリオ西新井店", "", "", "秋元晃介", "東京支店営業部", "090-8683-1966", "kousuke.akimoto.av@nttdocomo.com", "佐藤店長", "アリオ西新井店", "080-8760-6996", "ds.nishiarai-t@itx-corp.co.jp", ""], ["2W", "38", "アリオ蘇我", "7月11日", "7月12日", "千）ドコモショップ　市原店", "千）ドコモショップアリオ蘇我店", "", "植草めぐみ", "千葉支店　営業部", "090-9014-2226", "megumi.uekusa.hg@nttdocomo.com", "佐藤副店長", "アリオ蘇我店", "090-5449-0633", "sato.h@takahatacom.co.jp", ""], ["1W", "49", "イオンモール甲府昭和", "7月4日", "7月5日", "山）ドコモショップイオンモール甲府昭和店", "", "", "中村建大", "山梨支店営業部", "090-7187-5816", "kenta.nakamura.an@nttdocomo.com", "栗原 竜二", "イオンモール甲府昭和店", "080-8018-0620", "r_kurihara@sin.co.jp", ""], ["2W", "50", "イオンモール甲府昭和", "7月10日", "7月12日", "山）ドコモショップイオンモール甲府昭和店", "", "", "中村建大", "山梨支店営業部", "090-7187-5816", "kenta.nakamura.an@nttdocomo.com", "栗原 竜二", "イオンモール甲府昭和店", "080-8018-0620", "r_kurihara@sin.co.jp", ""], ["3W", "51", "イオンモール甲府昭和", "7月18日", "7月20日", "山）ドコモショップイオンモール甲府昭和店", "", "", "中村建大", "山梨支店営業部", "090-7187-5816", "kenta.nakamura.an@nttdocomo.com", "栗原 竜二", "イオンモール甲府昭和店", "080-8018-0620", "r_kurihara@sin.co.jp", ""], ["4W", "52", "イオンモール甲府昭和", "7月24日", "7月27日", "山）ドコモショップイオンモール甲府昭和店", "", "", "中村建大", "山梨支店営業部", "090-7187-5816", "kenta.nakamura.an@nttdocomo.com", "栗原 竜二", "イオンモール甲府昭和店", "080-8018-0620", "r_kurihara@sin.co.jp", ""], ["4W", "64", "イオンモール多摩平の森", "7月25日", "7月26日", "多）ドコモショップイオンモール多摩平の森店", "多）ドコモショップ京王聖蹟桜ヶ丘店", "多）ドコモショップ高幡不動店", "木枝、小澤、松田", "多摩支店　営業部", "090-7384-3015", "tama-sales_team1-ml@ml.nttdocomo.com", "石黒店長、牧野店長（補佐担当）", "DSイオンモール多摩平の森店、DS稲城矢野口店", "石黒：080-1176-3608,牧野（石黒店長に繋がらない場合）：070-4006-3575", "taga@t-gaia.co.jp,makino@t-gaia.co.jp,yu-kano@t-gaia.co.jp,t-ishiguro@t-gaia.co.jp,urakawa@t-gaia.co.jp,r-kozakai@t-gaia.co.jp,chino@t-gaia.co.jp,sho-hashimoto@t-gaia.co.jp,hisano@t-gaia.co.jp,yamori@t-gaia.co.jp", "連絡先メールアドレスについてはエリア長、エリア内店長全員を記載しております"], ["1W", "81", "ユニモちはら台", "7月4日", "7月5日", "千）ドコモショップユニモちはら台店", "千）ドコモショップ君津店", "千）ドコモショップ　松戸店", "石川貴大\n丸山かほり\n藤川奈々", "営業部", "080-1236-5250\n080-1251-0871\n090-7115-6167", "takahiro.ishikawa.kr@nttdocomo.com\nmaruyamakah@nttdocomo.com\nnana.fujikawa.at@nttdocomo.com", "◆ユニモちはら台店：秀浦店長\n◆君津店：阿部店長・大西副店長\n◆松戸店：江口店長・山本副店長\n◆イオンモール船橋店：小山店長・俵田副店長・木原副店長", "ユニモちはら台店・君津店・松戸店・AM船橋店", "◆ユニモちはら台店：秀浦店長(\n080-2163-7997)\n◆君津店：阿部店長(080-7702-4316)・大西副店長(070-4467-3265)\n◆松戸店：江口店長(080-9212-6817)・山本副店長(080-8726-2643)\n◆イオンモール船橋店：小山店長(090-7844-7044)・俵田副店長(080-1170-0044)・木原副店長(070‐4203-1982)", "", "削除：7月より「石川貴大」\n追加：7月より「井出光俊」メアド：mitsutoshi.ide.ax@nttdocomo.com/連絡先：090-7491-4353"], ["4W", "84", "ユニモちはら台", "7月25日", "7月26日", "千）ドコモショップユニモちはら台店", "千）ドコモショップ君津店", "千）ドコモショップ　松戸店", "石川貴大\n丸山かほり\n藤川奈々", "営業部", "080-1236-5250\n080-1251-0871\n090-7115-6167", "takahiro.ishikawa.kr@nttdocomo.com\nmaruyamakah@nttdocomo.com\nnana.fujikawa.at@nttdocomo.com", "◆ユニモちはら台店：秀浦店長\n◆君津店：阿部店長・大西副店長\n◆松戸店：江口店長・山本副店長\n◆イオンモール船橋店：小山店長・俵田副店長・木原副店長", "ユニモちはら台店・君津店・松戸店・AM船橋店", "◆ユニモちはら台店：秀浦店長(\n080-2163-7997)\n◆君津店：阿部店長(080-7702-4316)・大西副店長(070-4467-3265)\n◆松戸店：江口店長(080-9212-6817)・山本副店長(080-8726-2643)\n◆イオンモール船橋店：小山店長(090-7844-7044)・俵田副店長(080-1170-0044)・木原副店長(070‐4203-1982)", "", "削除：7月より「石川貴大」\n追加：7月より「井出光俊」メアド：mitsutoshi.ide.ax@nttdocomo.com/連絡先：090-7491-4353"], ["1W", "89", "ららぽーと横浜", "7月4日", "7月5日", "神）ドコモショップららぽーと横浜店", "", "", "6月中：池本\n7月以降：山内\n\n通期サブ担当：横山", "営業部", "池本：090-9019-9809（6月まで）\n山内：090-3238-9824（7月以降）", "yamauchiko@nttdocomo.com\nikemoto@nttdocomo.com\ntae.takayama.kd@nttdocomo.com", "大政副店長\n湯川店長\n小林副店長\n金城副店長", "ドコモショップららぽーと横浜店", "080-8411-7867\n080-7882-8279\n090-4027-5594\n090-3071-0539", "omasa-y@mxmobiling.com\nyukawa-st@mxmobiling.com\nkobayashi-tky@mxmobiling.com\nkinjyou-m@mxmobiling.com", "６月中連絡先：池本　香織\t営業部\t090-9019-9809\t\"ikemoto@nttdocomo.com　\ntae.takayama.kd@nttdocomo.com\""], ["2W", "90", "ららぽーと横浜", "7月11日", "7月12日", "神）ドコモショップららぽーと横浜店", "", "", "6月中：池本\n7月以降：山内\n\n通期サブ担当：横山", "営業部", "池本：090-9019-9809（6月まで）\n山内：090-3238-9824（7月以降）", "yamauchiko@nttdocomo.com\nikemoto@nttdocomo.com\ntae.takayama.kd@nttdocomo.com", "大政副店長\n湯川店長\n小林副店長\n金城副店長", "ドコモショップららぽーと横浜店", "080-8411-7867\n080-7882-8279\n090-4027-5594\n090-3071-0539", "omasa-y@mxmobiling.com\nyukawa-st@mxmobiling.com\nkobayashi-tky@mxmobiling.com\nkinjyou-m@mxmobiling.com", "６月中連絡先：池本　香織\t営業部\t090-9019-9809\t\"ikemoto@nttdocomo.com　\ntae.takayama.kd@nttdocomo.com\""], ["3W", "91", "ららぽーと横浜", "7月18日", "7月20日", "神）ドコモショップららぽーと横浜店", "", "", "6月中：池本\n7月以降：山内\n\n通期サブ担当：横山", "営業部", "池本：090-9019-9809（6月まで）\n山内：090-3238-9824（7月以降）", "yamauchiko@nttdocomo.com\nikemoto@nttdocomo.com\ntae.takayama.kd@nttdocomo.com", "大政副店長\n湯川店長\n小林副店長\n金城副店長", "ドコモショップららぽーと横浜店", "080-8411-7867\n080-7882-8279\n090-4027-5594\n090-3071-0539", "omasa-y@mxmobiling.com\nyukawa-st@mxmobiling.com\nkobayashi-tky@mxmobiling.com\nkinjyou-m@mxmobiling.com", "６月中連絡先：池本　香織\t営業部\t090-9019-9809\t\"ikemoto@nttdocomo.com　\ntae.takayama.kd@nttdocomo.com\""], ["4W", "92", "ららぽーと横浜", "7月25日", "7月26日", "神）ドコモショップららぽーと横浜店", "", "", "6月中：池本\n7月以降：山内\n\n通期サブ担当：横山", "営業部", "池本：090-9019-9809（6月まで）\n山内：090-3238-9824（7月以降）", "yamauchiko@nttdocomo.com\nikemoto@nttdocomo.com\ntae.takayama.kd@nttdocomo.com", "大政副店長\n湯川店長\n小林副店長\n金城副店長", "ドコモショップららぽーと横浜店", "080-8411-7867\n080-7882-8279\n090-4027-5594\n090-3071-0539", "omasa-y@mxmobiling.com\nyukawa-st@mxmobiling.com\nkobayashi-tky@mxmobiling.com\nkinjyou-m@mxmobiling.com", "６月中連絡先：池本　香織\t営業部\t090-9019-9809\t\"ikemoto@nttdocomo.com　\ntae.takayama.kd@nttdocomo.com\""]];
+function addContactRow(data){
+  const tbody = document.querySelector('#contactsTable tbody');
+  const tr = document.createElement('tr');
+  for(let i=0;i<CONTACT_COLS;i++){
+    const td = document.createElement('td');
+    td.contentEditable = isEditUnlocked();
+    td.classList.add('editable-cell');
+    td.oninput = ()=>{ saveAll(); };
+    if(data && data[i] !== undefined) td.textContent = data[i];
+    tr.appendChild(td);
+  }
+  tbody.appendChild(tr);
+}
+function collectContactsState(){
+  return [...document.querySelectorAll('#contactsTable tbody tr')].map(r=>{
+    const a = [];
+    for(let i=0;i<CONTACT_COLS;i++) a.push(r.cells[i].textContent);
+    return a;
+  });
+}
+function applyContacts(list){
+  document.querySelector('#contactsTable tbody').innerHTML = '';
+  (list||[]).forEach(d=>addContactRow(d));
+}
+
 // 列: 0 状態 / 1-22 計画(19=ディレクター) / 23-28 実績 / 29-33 計算(33=ペース) / 34 日別ボタン
 const STATUS_COL = 0;
 const DIRECTOR_IDX = 19;
@@ -635,6 +708,20 @@ function diffStates(oldSt, newSt){
     }
     if(fc.length) changes.push(`クレーム(${b[1]||a[1]||'(無題)'}) — ${fc.join(', ')}`);
   }
+  const oldContacts = oldSt.contacts||[], newContacts = newSt.contacts||[];
+  const maxContacts = Math.max(oldContacts.length, newContacts.length);
+  for(let r=0;r<maxContacts;r++){
+    const a = oldContacts[r], b = newContacts[r];
+    if(!a && b){ changes.push(`[連携情報追加] ${b[2]||'(施設未記入)'}`); continue; }
+    if(a && !b){ changes.push(`[連携情報削除] ${a[2]||'(施設未記入)'}`); continue; }
+    if(!a || !b) continue;
+    const fc2 = [];
+    for(let c=0;c<CONTACT_FIELD_LABELS.length;c++){
+      const av = a[c]??'', bv = b[c]??'';
+      if(av !== bv) fc2.push(`${CONTACT_FIELD_LABELS[c]}:${av||'(空)'}→${bv||'(空)'}`);
+    }
+    if(fc2.length) changes.push(`連携情報(${b[2]||a[2]||'(無題)'}) — ${fc2.join(', ')}`);
+  }
   return changes;
 }
 const EDIT_UNLOCK_KEY = 'event-ledger-edit-unlocked';
@@ -650,7 +737,7 @@ function applyLockState(unlocked){
   document.body.classList.toggle('view-only', !unlocked);
   document.querySelectorAll('.editable-cell').forEach(td=>{ td.contentEditable = unlocked; });
   document.querySelectorAll('.editable-input').forEach(inp=>{ inp.disabled = !unlocked; });
-  [evMinus, evBilling, evAladinCard, evAladinHikari, addRowBtn, resetBtn, addClaimBtn].forEach(el=>{ if(el) el.disabled = !unlocked; });
+  [evMinus, evBilling, evAladinCard, evAladinHikari, addRowBtn, resetBtn, addClaimBtn, addContactBtn].forEach(el=>{ if(el) el.disabled = !unlocked; });
   lockBtn.textContent = unlocked ? '編集を終了（閲覧のみに戻す）' : '編集する';
   lockBtn.className = 'lockbtn ' + (unlocked ? 'unlocked' : 'locked');
   updateEditorNameLabel();
@@ -1190,7 +1277,7 @@ function collectState(){
     for(let i=1;i<=28;i++) a.push(cellText(r.cells[i]));
     return a;
   });
-  return {rows, daily:dailyData, minus:evMinus.value, aladinC:evAladinCard.checked, aladinH:evAladinHikari.checked, billing:evBilling.value, claims:collectClaimsState()};
+  return {rows, daily:dailyData, minus:evMinus.value, aladinC:evAladinCard.checked, aladinH:evAladinHikari.checked, billing:evBilling.value, claims:collectClaimsState(), contacts:collectContactsState()};
 }
 
 function saveAll(){
@@ -1224,6 +1311,7 @@ function applyState(state){
   evAladinHikari.checked = !!state.aladinH;
   evBilling.value = state.billing||'';
   applyClaims(state.claims||[]);
+  applyContacts(state.contacts||[]);
   try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){}
   applyingRemote = false;
   applyFilter();
@@ -1244,6 +1332,11 @@ window.addEventListener('fb-ready', ()=>{
     syncMsg.style.color = '#1a7a3a';
     if(remote && remote._meta && remote._meta.by===CLIENT_ID){ lastKnownState = remote; return; }  // 自分の書込みは無視
     if(remote && remote.rows){
+      // contactsフィールドがまだ存在しない古いデータ→初期データを一度だけ補完してpush
+      if(remote.contacts === undefined && CONTACT_DATA.length){
+        remote = {...remote, contacts: CONTACT_DATA};
+        window.__fb.push({contacts: CONTACT_DATA});
+      }
       applyState(remote);
       lastKnownState = remote;
       if(!first) showToast('他の端末の変更を受信しました', 'info');
@@ -1305,9 +1398,11 @@ function loadAll(){
     evAladinHikari.checked = !!state.aladinH;
     evBilling.value = state.billing||'';
     applyClaims(state.claims||[]);
+    applyContacts(state.contacts||[]);
   }else{
     DATA.forEach(d=>addRow(convData(d)));
     updateClaimsSummary();
+    applyContacts(CONTACT_DATA);
   }
 }
 
@@ -1393,10 +1488,13 @@ if(FIREBASE_CONFIG && ROOM_ID && !ROOM_ID.startsWith('CHANGE-ME')){
     window.__fb = {
       enabled: true,
       // update()は指定キーのみ上書き。history等の兄弟ノードを消さない
-      push(state){ update(roomRef, state).catch(e=>console.error('sync push failed', e)); },
-      subscribe(cb){ onValue(roomRef, snap=>{ const v = snap.val(); cb(v ? {rows:v.rows, daily:v.daily, minus:v.minus, aladinC:v.aladinC, aladinH:v.aladinH, billing:v.billing, _meta:v._meta} : null); }, e=>console.error('sync read failed', e)); },
+      // JSON往復でundefinedを除去（Firebaseはundefinedを含むオブジェクトのpush/updateを例外で拒否するため）
+      push(state){ update(roomRef, JSON.parse(JSON.stringify(state))).catch(e=>console.error('sync push failed', e)); },
+      // claims/contactsは空配列だとFirebase上でキーごと消える（=undefinedで返る）ため、
+      // ||[]で必ず配列に正規化する。ここを怠るとundefinedがhistory等に混入しpush()が例外で失敗する
+      subscribe(cb){ onValue(roomRef, snap=>{ const v = snap.val(); cb(v ? {rows:v.rows, daily:v.daily, minus:v.minus, aladinC:v.aladinC, aladinH:v.aladinH, billing:v.billing, claims:v.claims||[], contacts:v.contacts||[], _meta:v._meta} : null); }, e=>console.error('sync read failed', e)); },
       pushHistory(entry){
-        push(historyRef, entry).catch(e=>console.error('history push failed', e));
+        push(historyRef, JSON.parse(JSON.stringify(entry))).catch(e=>console.error('history push failed', e));
         // 40件超えたら古い分を削除（容量抑制、REST経由）
         fetch(HISTORY_REST_BASE+'.json?shallow=true').then(r=>r.json()).then(obj=>{
           const keys = obj ? Object.keys(obj) : [];
