@@ -204,6 +204,12 @@
   .lockbtn{font-weight:700;}
   .lockbtn.locked{background:#fff;color:#8a6d00;border-color:#e6b800;}
   .lockbtn.unlocked{background:var(--ok-bg);color:var(--ok);border-color:var(--ok);}
+  /* クレーム蓄積シート */
+  select.claim-status{font-weight:700;border-radius:6px;padding:3px 6px;border:1px solid #ccd4e0;}
+  select.claim-status.st-pending{background:var(--ng-bg);color:var(--ng);border-color:var(--ng);}
+  select.claim-status.st-inprogress{background:#fff3cd;color:#8a6d00;border-color:#e6b800;}
+  select.claim-status.st-done{background:var(--ok-bg);color:var(--ok);border-color:var(--ok);}
+  #claimsTable td{min-width:90px;}
   body.view-only td[contenteditable]{background:#fafbfc;cursor:default;}
   body.view-only input.dir{cursor:default;}
 </style>
@@ -219,6 +225,7 @@
     <button class="tab-btn" data-tab="ledger" onclick="switchTab('ledger')">📋 台帳</button>
     <button class="tab-btn" data-tab="eval" onclick="switchTab('eval')">💯 評価サマリ</button>
     <button class="tab-btn" data-tab="summary" onclick="switchTab('summary')">📊 集計</button>
+    <button class="tab-btn" data-tab="claims" onclick="switchTab('claims')">⚠️ クレーム</button>
   </div>
 </div>
 
@@ -408,6 +415,31 @@
 </table>
 </div><!-- /tab-summary -->
 
+<div class="tab-panel tab-hidden" id="tab-claims">
+<h2>クレーム蓄積シート</h2>
+<div class="sub" id="claimsSummary">-</div>
+<div class="toolbar">
+  <button id="addClaimBtn" onclick="addClaimRow();saveAll()">クレーム追加</button>
+</div>
+<div class="wrap">
+<table id="claimsTable">
+  <thead>
+    <tr>
+      <th style="min-width:110px">発生日</th>
+      <th style="min-width:140px">施設名</th>
+      <th style="min-width:110px">支店</th>
+      <th style="min-width:100px">委託先</th>
+      <th style="min-width:260px">クレーム内容</th>
+      <th style="min-width:100px">対応状況</th>
+      <th style="min-width:260px">対応内容</th>
+      <th style="min-width:90px">担当者</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+</div>
+</div><!-- /tab-claims -->
+
 </div><!-- /.page -->
 
 <div id="toastHost" class="toast-host"></div>
@@ -472,6 +504,68 @@ const DATA = [
 ["4W","92","ランクB","神）神奈川支店","ららぽーと横浜","2F","2階ノースストレート（ノースコート側）","","","","小","12","","7月25日","7月26日","2","","ルーデンス","38","19","4"],
 ];
 
+// ===== クレーム蓄積シート =====
+// 列: 0発生日,1施設名,2支店,3委託先,4クレーム内容,5対応状況,6対応内容,7担当者
+const CLAIM_COLS = 8;
+const CLAIM_FIELD_LABELS = ['発生日','施設名','支店','委託先','クレーム内容','対応状況','対応内容','担当者'];
+const CLAIM_STATUS_OPTS = ['未対応','対応中','対応済'];
+const CLAIM_STATUS_CLASS = {'未対応':'st-pending','対応中':'st-inprogress','対応済':'st-done'};
+function addClaimRow(data){
+  const tbody = document.querySelector('#claimsTable tbody');
+  const tr = document.createElement('tr');
+  for(let i=0;i<CLAIM_COLS;i++){
+    const td = document.createElement('td');
+    if(i===5){
+      const sel = document.createElement('select');
+      sel.className = 'claim-status editable-input';
+      sel.disabled = !isEditUnlocked();
+      CLAIM_STATUS_OPTS.forEach(o=>sel.add(new Option(o,o)));
+      sel.value = (data && data[5]) || '未対応';
+      sel.classList.add(CLAIM_STATUS_CLASS[sel.value]||'st-pending');
+      sel.onchange = ()=>{
+        Object.values(CLAIM_STATUS_CLASS).forEach(c=>sel.classList.remove(c));
+        sel.classList.add(CLAIM_STATUS_CLASS[sel.value]||'st-pending');
+        updateClaimsSummary(); saveAll();
+      };
+      td.appendChild(sel);
+    }else{
+      td.contentEditable = isEditUnlocked();
+      td.classList.add('editable-cell');
+      td.oninput = ()=>{ updateClaimsSummary(); saveAll(); };
+      if(data && data[i] !== undefined) td.textContent = data[i];
+    }
+    tr.appendChild(td);
+  }
+  tbody.appendChild(tr);
+  updateClaimsSummary();
+}
+function collectClaimsState(){
+  return [...document.querySelectorAll('#claimsTable tbody tr')].map(r=>{
+    const a = [];
+    for(let i=0;i<CLAIM_COLS;i++){
+      const sel = r.cells[i].querySelector('select');
+      a.push(sel ? sel.value : r.cells[i].textContent);
+    }
+    return a;
+  });
+}
+function applyClaims(list){
+  document.querySelector('#claimsTable tbody').innerHTML = '';
+  (list||[]).forEach(d=>addClaimRow(d));
+  updateClaimsSummary();
+}
+function updateClaimsSummary(){
+  const rows = [...document.querySelectorAll('#claimsTable tbody tr')];
+  const counts = {'未対応':0,'対応中':0,'対応済':0};
+  rows.forEach(r=>{
+    const sel = r.cells[5].querySelector('select');
+    const v = sel ? sel.value : '未対応';
+    if(counts[v]!==undefined) counts[v]++;
+  });
+  const el = document.getElementById('claimsSummary');
+  if(el) el.textContent = `合計 ${rows.length}件　未対応 ${counts['未対応']}件 / 対応中 ${counts['対応中']}件 / 対応済 ${counts['対応済']}件`;
+}
+
 // 列: 0 状態 / 1-22 計画(19=ディレクター) / 23-28 実績 / 29-33 計算(33=ペース) / 34 日別ボタン
 const STATUS_COL = 0;
 const DIRECTOR_IDX = 19;
@@ -527,6 +621,20 @@ function diffStates(oldSt, newSt){
   if(!!oldSt.aladinC!==!!newSt.aladinC) changes.push(`ALADIN乖離(dカード):${!!oldSt.aladinC}→${!!newSt.aladinC}`);
   if(!!oldSt.aladinH!==!!newSt.aladinH) changes.push(`ALADIN乖離(光):${!!oldSt.aladinH}→${!!newSt.aladinH}`);
   if(String(oldSt.billing||'')!==String(newSt.billing||'')) changes.push(`請求額:${oldSt.billing}→${newSt.billing}`);
+  const oldClaims = oldSt.claims||[], newClaims = newSt.claims||[];
+  const maxClaims = Math.max(oldClaims.length, newClaims.length);
+  for(let r=0;r<maxClaims;r++){
+    const a = oldClaims[r], b = newClaims[r];
+    if(!a && b){ changes.push(`[クレーム追加] ${b[1]||'(施設未記入)'}`); continue; }
+    if(a && !b){ changes.push(`[クレーム削除] ${a[1]||'(施設未記入)'}`); continue; }
+    if(!a || !b) continue;
+    const fc = [];
+    for(let c=0;c<CLAIM_FIELD_LABELS.length;c++){
+      const av = a[c]??'', bv = b[c]??'';
+      if(av !== bv) fc.push(`${CLAIM_FIELD_LABELS[c]}:${av||'(空)'}→${bv||'(空)'}`);
+    }
+    if(fc.length) changes.push(`クレーム(${b[1]||a[1]||'(無題)'}) — ${fc.join(', ')}`);
+  }
   return changes;
 }
 const EDIT_UNLOCK_KEY = 'event-ledger-edit-unlocked';
@@ -540,9 +648,9 @@ async function sha256Hex(text){
 function applyLockState(unlocked){
   editUnlocked = unlocked;
   document.body.classList.toggle('view-only', !unlocked);
-  document.querySelectorAll('#ledger .editable-cell').forEach(td=>{ td.contentEditable = unlocked; });
-  document.querySelectorAll('#ledger .editable-input').forEach(inp=>{ inp.disabled = !unlocked; });
-  [evMinus, evBilling, evAladinCard, evAladinHikari, addRowBtn, resetBtn].forEach(el=>{ if(el) el.disabled = !unlocked; });
+  document.querySelectorAll('.editable-cell').forEach(td=>{ td.contentEditable = unlocked; });
+  document.querySelectorAll('.editable-input').forEach(inp=>{ inp.disabled = !unlocked; });
+  [evMinus, evBilling, evAladinCard, evAladinHikari, addRowBtn, resetBtn, addClaimBtn].forEach(el=>{ if(el) el.disabled = !unlocked; });
   lockBtn.textContent = unlocked ? '編集を終了（閲覧のみに戻す）' : '編集する';
   lockBtn.className = 'lockbtn ' + (unlocked ? 'unlocked' : 'locked');
   updateEditorNameLabel();
@@ -1082,7 +1190,7 @@ function collectState(){
     for(let i=1;i<=28;i++) a.push(cellText(r.cells[i]));
     return a;
   });
-  return {rows, daily:dailyData, minus:evMinus.value, aladinC:evAladinCard.checked, aladinH:evAladinHikari.checked, billing:evBilling.value};
+  return {rows, daily:dailyData, minus:evMinus.value, aladinC:evAladinCard.checked, aladinH:evAladinHikari.checked, billing:evBilling.value, claims:collectClaimsState()};
 }
 
 function saveAll(){
@@ -1115,6 +1223,7 @@ function applyState(state){
   evAladinCard.checked = !!state.aladinC;
   evAladinHikari.checked = !!state.aladinH;
   evBilling.value = state.billing||'';
+  applyClaims(state.claims||[]);
   try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){}
   applyingRemote = false;
   applyFilter();
@@ -1195,8 +1304,10 @@ function loadAll(){
     evAladinCard.checked = !!state.aladinC;
     evAladinHikari.checked = !!state.aladinH;
     evBilling.value = state.billing||'';
+    applyClaims(state.claims||[]);
   }else{
     DATA.forEach(d=>addRow(convData(d)));
+    updateClaimsSummary();
   }
 }
 
