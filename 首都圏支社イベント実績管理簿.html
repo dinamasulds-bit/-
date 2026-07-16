@@ -454,6 +454,8 @@
 <div class="toolbar">
   <label>週: <select id="cWeekFilter" onchange="applyContactFilter()"><option value="">全て</option></select></label>
   <label>施設名: <input type="text" id="cFacilitySearch" placeholder="施設名で検索" oninput="applyContactFilter()" style="padding:6px 9px;font-size:13px;border:1px solid #ccd4e0;border-radius:7px;"></label>
+  <button class="sec" onclick="toggleSimple()">簡易表示切替</button>
+  <button class="sec" onclick="exportContactsVcf()">vCard出力</button>
   <button id="addContactBtn" onclick="addContactRow();saveAll()">連絡先追加</button>
 </div>
 <div class="wrap">
@@ -461,27 +463,27 @@
   <thead>
     <tr>
       <th rowspan="2" style="min-width:50px">週</th>
-      <th rowspan="2" style="min-width:50px">項番</th>
+      <th rowspan="2" class="detail-col" style="min-width:50px">項番</th>
       <th rowspan="2" style="min-width:140px">施設名</th>
-      <th rowspan="2" style="min-width:80px">開始日</th>
-      <th rowspan="2" style="min-width:80px">終了日</th>
-      <th colspan="3">連携店舗</th>
+      <th rowspan="2" class="detail-col" style="min-width:80px">開始日</th>
+      <th rowspan="2" class="detail-col" style="min-width:80px">終了日</th>
+      <th colspan="3" class="detail-col">連携店舗</th>
       <th colspan="4" class="grp-actual">支店連絡先</th>
       <th colspan="4" class="grp-rate">代理店さま連絡先</th>
-      <th rowspan="2" style="min-width:200px">備考</th>
+      <th rowspan="2" class="detail-col" style="min-width:200px">備考</th>
     </tr>
     <tr>
-      <th style="min-width:160px">代表</th>
-      <th style="min-width:160px">連携②</th>
-      <th style="min-width:160px">連携③</th>
+      <th class="detail-col" style="min-width:160px">代表</th>
+      <th class="detail-col" style="min-width:160px">連携②</th>
+      <th class="detail-col" style="min-width:160px">連携③</th>
       <th class="grp-actual" style="min-width:130px">担当者名</th>
-      <th class="grp-actual" style="min-width:110px">部署名</th>
+      <th class="grp-actual detail-col" style="min-width:110px">部署名</th>
       <th class="grp-actual" style="min-width:150px">連絡先</th>
-      <th class="grp-actual" style="min-width:200px">メールアドレス</th>
+      <th class="grp-actual detail-col" style="min-width:200px">メールアドレス</th>
       <th class="grp-rate" style="min-width:130px">担当者名</th>
-      <th class="grp-rate" style="min-width:110px">部署名</th>
+      <th class="grp-rate detail-col" style="min-width:110px">部署名</th>
       <th class="grp-rate" style="min-width:150px">連絡先</th>
-      <th class="grp-rate" style="min-width:200px">メールアドレス</th>
+      <th class="grp-rate detail-col" style="min-width:200px">メールアドレス</th>
     </tr>
   </thead>
   <tbody></tbody>
@@ -632,6 +634,7 @@ function linkifyCell(td){
   html = html.replace(/([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/g, '<a href="mailto:$1" class="contact-link">$1</a>');
   td.innerHTML = html;
 }
+const CONTACT_DETAIL_COLS = [1,3,4,5,6,7,9,11,13,15,16];
 function addContactRow(data){
   const tbody = document.querySelector('#contactsTable tbody');
   const tr = document.createElement('tr');
@@ -639,6 +642,7 @@ function addContactRow(data){
     const td = document.createElement('td');
     td.contentEditable = isEditUnlocked();
     td.classList.add('editable-cell');
+    if(CONTACT_DETAIL_COLS.includes(i)) td.classList.add('detail-col');
     td.oninput = ()=>{ saveAll(); };
     if(data && data[i] !== undefined) td.textContent = data[i];
     if(CONTACT_LINK_COLS.includes(i)){
@@ -663,6 +667,48 @@ function applyContacts(list){
   document.querySelector('#contactsTable tbody').innerHTML = '';
   (list||[]).forEach(d=>addContactRow(d));
   applyContactFilter();
+}
+
+// ===== vCard出力 =====
+function extractPhones(text){ return [...new Set((String(text||'').match(/0\d{1,4}-\d{1,4}-\d{3,4}/g)||[]))]; }
+function extractEmails(text){ return [...new Set((String(text||'').match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g)||[]))]; }
+function vcardEscape(s){ return String(s||'').replace(/\\/g,'\\\\').replace(/,/g,'\\,').replace(/;/g,'\\;').replace(/\n/g,'\\n'); }
+function buildVCard(fn, org, note, tels, emails){
+  let v = 'BEGIN:VCARD\r\nVERSION:3.0\r\n';
+  v += `FN:${vcardEscape(fn)}\r\n`;
+  v += `N:${vcardEscape(fn)};;;;\r\n`;
+  if(org) v += `ORG:${vcardEscape(org)}\r\n`;
+  if(note) v += `NOTE:${vcardEscape(note)}\r\n`;
+  tels.forEach(t=>v+=`TEL;TYPE=CELL,VOICE:${t}\r\n`);
+  emails.forEach(e=>v+=`EMAIL:${e}\r\n`);
+  v += 'END:VCARD\r\n';
+  return v;
+}
+function exportContactsVcf(){
+  const rows = collectContactsState();
+  let out = '', count = 0;
+  rows.forEach(r=>{
+    const [week, itemNo, facility, start, end, rep, link2, link3, bName, bDept, bTel, bMail, aName, aDept, aTel, aMail, note] = r;
+    if(!facility) return;
+    const bTels = extractPhones(bTel), bEmails = extractEmails(bMail);
+    if(bName || bTels.length || bEmails.length){
+      out += buildVCard(`${facility}（支店・項番${itemNo}）`, bDept, bName, bTels, bEmails);
+      count++;
+    }
+    const aTels = extractPhones(aTel), aEmails = extractEmails(aMail);
+    if(aName || aTels.length || aEmails.length){
+      out += buildVCard(`${facility}（代理店・項番${itemNo}）`, aDept, aName, aTels, aEmails);
+      count++;
+    }
+  });
+  if(!count){ alert('出力できる連絡先がありません'); return; }
+  const blob = new Blob(['﻿'+out], {type:'text/vcard;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '連携情報_連絡先.vcf';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast(count+'件の連絡先を書き出しました', 'ok');
 }
 function refreshContactWeekFilter(){
   const sel = document.getElementById('cWeekFilter');
@@ -1106,6 +1152,7 @@ function applyFilter(){
 // ===== 簡易表示（モバイル向け列間引き） =====
 function applySimpleView(on){
   document.getElementById('ledger').classList.toggle('simple-view', on);
+  document.getElementById('contactsTable').classList.toggle('simple-view', on);
   simpleBtn.textContent = on ? '全項目表示' : '簡易表示';
   simpleBtn.classList.toggle('sec', !on);
 }
