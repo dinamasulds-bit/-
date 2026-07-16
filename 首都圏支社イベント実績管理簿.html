@@ -5,14 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>首都圏支社イベント実績管理簿</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#2b4c7e">
+<meta name="theme-color" content="#1c1f26">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="イベント実績簿">
 <style>
   :root{
-    --navy:#1e3a5f; --navy2:#2b4c7e; --accent:#3b6ea5; --accent-light:#eef3fa;
+    /* 白基調＋黒・ゴールドのアクセント（アイコンの配色を差し色として反映） */
+    --navy:#14161c; --navy2:#1c1f26; --accent:#b8912f; --accent-light:#f8f2e3;
     --bg:#eef1f6; --card:#fff; --border:#dfe4ec; --text:#1f2937; --muted:#64748b;
     --ok:#1a7a3a; --ok-bg:#e3f3e8; --ng:#c0392b; --ng-bg:#fbe9e7; --warn:#b8860b; --warn-bg:#fff6e0;
     --actual:#8a5a2b; --rate:#7a3b56;
@@ -22,8 +23,8 @@
   }
   *{box-sizing:border-box;}
   body{font-family:"Hiragino Sans","Meiryo",sans-serif;margin:0;background:
-    radial-gradient(1200px 400px at 10% -10%, #e7edf8 0%, transparent 60%),
-    radial-gradient(1000px 400px at 100% 0%, #eaf1ea 0%, transparent 55%),
+    radial-gradient(1200px 400px at 10% -10%, #f3ecd9 0%, transparent 60%),
+    radial-gradient(1000px 400px at 100% 0%, #e9eaee 0%, transparent 55%),
     var(--bg);
     color:var(--text);}
   .page{max-width:1400px;margin:0 auto;padding:18px 20px 40px;}
@@ -40,7 +41,7 @@
   .tab-btn{appearance:none;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:600;
     padding:9px 18px;border-radius:9px 9px 0 0;cursor:pointer;position:relative;top:1px;
     transition:color .15s,background .15s;}
-  .tab-btn:hover{color:var(--navy2);background:rgba(43,76,126,.06);}
+  .tab-btn:hover{color:var(--navy2);background:rgba(20,20,20,.06);}
   .tab-btn.active{color:var(--navy);background:var(--card);box-shadow:0 -1px 0 var(--border) inset;border:1px solid var(--border);border-bottom:1px solid var(--card);}
   .tab-panel{background:var(--card);border:1px solid var(--border);border-radius:0 var(--radius) var(--radius) var(--radius);
     padding:18px;box-shadow:var(--shadow);}
@@ -93,8 +94,8 @@
   .ez-step-btn{width:42px;height:42px;border-radius:10px;font-size:20px;font-weight:700;padding:0;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .ez-input{width:66px;text-align:center;font-size:19px;font-weight:700;padding:9px 2px;border:1px solid #ccd4e0;border-radius:9px;font-family:inherit;}
 
-  .rules{background:var(--accent-light);border:1px solid #d7e3f3;border-left:4px solid var(--accent);border-radius:var(--radius-sm);
-    padding:12px 16px;font-size:12px;margin-bottom:14px;line-height:1.75;color:#31415a;}
+  .rules{background:var(--accent-light);border:1px solid #ebe0c4;border-left:4px solid var(--accent);border-radius:var(--radius-sm);
+    padding:12px 16px;font-size:12px;margin-bottom:14px;line-height:1.75;color:#3d3626;}
   .rules b{color:var(--navy2);}
   .rules .warn{color:var(--ng);font-weight:600;}
 
@@ -124,7 +125,7 @@
   .toolbar label{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:4px;}
   button{padding:7px 15px;font-size:13px;font-weight:600;border:1px solid var(--navy2);background:var(--navy2);color:#fff;
     border-radius:8px;cursor:pointer;transition:transform .08s,opacity .15s,box-shadow .15s;}
-  button:hover{opacity:.9;box-shadow:0 2px 8px rgba(43,76,126,.25);}
+  button:hover{opacity:.9;box-shadow:0 2px 8px rgba(20,20,20,.28);}
   button:active{transform:translateY(1px);}
   button.sec{background:#fff;color:var(--navy2);}
   button.danger{background:#fff;color:var(--ng);border-color:var(--ng);}
@@ -151,7 +152,7 @@
 
   /* サマリ表 */
   .mini{box-shadow:var(--shadow);border-radius:var(--radius-sm);overflow:hidden;}
-  .mini th{background:#3d5a80;}
+  .mini th{background:var(--navy2);}
   .bar{position:relative;background:#e8ecf2;border-radius:5px;height:15px;min-width:120px;overflow:hidden;}
   .bar i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#2b8a4a,#38a55c);border-radius:5px;}
   .bar i.low{background:linear-gradient(90deg,#c0392b,#d9584a);}
