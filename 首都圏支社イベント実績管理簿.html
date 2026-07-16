@@ -217,6 +217,7 @@
   a.contact-link{color:#1a5fb4;text-decoration:underline;font-weight:600;}
   a.contact-link:hover{color:#0d3b7a;}
   body.view-only td[contenteditable]{background:#fafbfc;cursor:default;}
+  body.view-only #claimsTable td[contenteditable]{background:transparent;cursor:text;}
   body.view-only input.dir{cursor:default;}
 </style>
 </head>
@@ -425,9 +426,10 @@
 
 <div class="tab-panel tab-hidden" id="tab-claims">
 <h2>クレーム蓄積シート</h2>
+<div class="sub">このタブはパスワード不要・誰でも記入できます。</div>
 <div class="sub" id="claimsSummary">-</div>
 <div class="toolbar">
-  <button id="addClaimBtn" onclick="addClaimRow();saveAll()">クレーム追加</button>
+  <button id="addClaimBtn" onclick="if(getEditorName()==='不明')promptEditorName();addClaimRow();saveAll()">クレーム追加</button>
 </div>
 <div class="wrap">
 <table id="claimsTable">
@@ -566,10 +568,10 @@ function addClaimRow(data){
   const tr = document.createElement('tr');
   for(let i=0;i<CLAIM_COLS;i++){
     const td = document.createElement('td');
+    // クレームは現場の誰でも記録できるよう、編集ロックの対象外（常に入力可）
     if(i===5){
       const sel = document.createElement('select');
-      sel.className = 'claim-status editable-input';
-      sel.disabled = !isEditUnlocked();
+      sel.className = 'claim-status';
       CLAIM_STATUS_OPTS.forEach(o=>sel.add(new Option(o,o)));
       sel.value = (data && data[5]) || '未対応';
       sel.classList.add(CLAIM_STATUS_CLASS[sel.value]||'st-pending');
@@ -580,8 +582,7 @@ function addClaimRow(data){
       };
       td.appendChild(sel);
     }else{
-      td.contentEditable = isEditUnlocked();
-      td.classList.add('editable-cell');
+      td.contentEditable = true;
       td.oninput = ()=>{ updateClaimsSummary(); saveAll(); };
       if(data && data[i] !== undefined) td.textContent = data[i];
     }
@@ -830,7 +831,8 @@ function applyLockState(unlocked){
   document.body.classList.toggle('view-only', !unlocked);
   document.querySelectorAll('.editable-cell').forEach(td=>{ td.contentEditable = unlocked; });
   document.querySelectorAll('.editable-input').forEach(inp=>{ inp.disabled = !unlocked; });
-  [evMinus, evBilling, evAladinCard, evAladinHikari, addRowBtn, resetBtn, addClaimBtn, addContactBtn].forEach(el=>{ if(el) el.disabled = !unlocked; });
+  // addClaimBtnは対象外: クレームは誰でも記録できる運用
+  [evMinus, evBilling, evAladinCard, evAladinHikari, addRowBtn, resetBtn, addContactBtn].forEach(el=>{ if(el) el.disabled = !unlocked; });
   lockBtn.textContent = unlocked ? '編集を終了（閲覧のみに戻す）' : '編集する';
   lockBtn.className = 'lockbtn ' + (unlocked ? 'unlocked' : 'locked');
   updateEditorNameLabel();
