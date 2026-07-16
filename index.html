@@ -206,6 +206,12 @@
     .modal{padding:14px 16px;max-width:96vw;}
     .modal table input{font-size:16px;width:52px;}
     .savemsg{display:block;margin-top:4px;}
+    /* 連携情報テーブルはスマホでさらに列幅を絞る（電話番号が折り返しすぎないよう連絡先系は広めに残す） */
+    #contactsTable th{min-width:0 !important;}
+    #contactsTable th:nth-child(1),#contactsTable td:nth-child(1){width:34px;}
+    #contactsTable th:nth-child(3),#contactsTable td:nth-child(3){width:72px;}
+    #contactsTable td{max-width:100px;}
+    a.contact-link{white-space:nowrap;}
   }
   .lockbtn{font-weight:700;}
   .lockbtn.locked{background:#fff;color:#8a6d00;border-color:#e6b800;}
@@ -524,28 +530,28 @@
 <table id="contactsTable" class="pre-wrap-table">
   <thead>
     <tr>
-      <th rowspan="2" style="min-width:50px">週</th>
-      <th rowspan="2" class="detail-col" style="min-width:50px">項番</th>
-      <th rowspan="2" style="min-width:140px">施設名</th>
-      <th rowspan="2" class="detail-col" style="min-width:80px">開始日</th>
-      <th rowspan="2" class="detail-col" style="min-width:80px">終了日</th>
+      <th rowspan="2" style="min-width:44px">週</th>
+      <th rowspan="2" class="detail-col" style="min-width:44px">項番</th>
+      <th rowspan="2" style="min-width:96px">施設名</th>
+      <th rowspan="2" class="detail-col" style="min-width:64px">開始日</th>
+      <th rowspan="2" class="detail-col" style="min-width:64px">終了日</th>
       <th colspan="3" class="detail-col">連携店舗</th>
       <th colspan="4" class="grp-actual">支店連絡先</th>
       <th colspan="4" class="grp-rate">代理店さま連絡先</th>
-      <th rowspan="2" class="detail-col" style="min-width:200px">備考</th>
+      <th rowspan="2" class="detail-col" style="min-width:120px">備考</th>
     </tr>
     <tr>
-      <th class="detail-col" style="min-width:160px">代表</th>
-      <th class="detail-col" style="min-width:160px">連携②</th>
-      <th class="detail-col" style="min-width:160px">連携③</th>
-      <th class="grp-actual" style="min-width:130px">担当者名</th>
-      <th class="grp-actual detail-col" style="min-width:110px">部署名</th>
-      <th class="grp-actual" style="min-width:150px">連絡先</th>
-      <th class="grp-actual detail-col" style="min-width:200px">メールアドレス</th>
-      <th class="grp-rate" style="min-width:130px">担当者名</th>
-      <th class="grp-rate detail-col" style="min-width:110px">部署名</th>
-      <th class="grp-rate" style="min-width:150px">連絡先</th>
-      <th class="grp-rate detail-col" style="min-width:200px">メールアドレス</th>
+      <th class="detail-col" style="min-width:110px">代表</th>
+      <th class="detail-col" style="min-width:110px">連携②</th>
+      <th class="detail-col" style="min-width:110px">連携③</th>
+      <th class="grp-actual" style="min-width:90px">担当者名</th>
+      <th class="grp-actual detail-col" style="min-width:80px">部署名</th>
+      <th class="grp-actual" style="min-width:100px">連絡先</th>
+      <th class="grp-actual detail-col" style="min-width:140px">メールアドレス</th>
+      <th class="grp-rate" style="min-width:90px">担当者名</th>
+      <th class="grp-rate detail-col" style="min-width:80px">部署名</th>
+      <th class="grp-rate" style="min-width:100px">連絡先</th>
+      <th class="grp-rate detail-col" style="min-width:140px">メールアドレス</th>
     </tr>
   </thead>
   <tbody></tbody>
