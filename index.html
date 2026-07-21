@@ -292,8 +292,11 @@
 <div class="page">
 <div class="app-header">
   <div class="app-header-top">
-    <h1>首都圏支社イベント実績管理簿（2026年7月）</h1>
-    <button class="sec mini-btn" id="fontBtn" onclick="toggleFontSize()">文字サイズ 大</button>
+    <h1>首都圏支社イベント実績管理簿（<span id="monthTitleText">2026年7月</span>）</h1>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <select id="monthSelect" onchange="switchMonth(this.value)" style="font-weight:700;"></select>
+      <button class="sec mini-btn" id="fontBtn" onclick="toggleFontSize()">文字サイズ 大</button>
+    </div>
   </div>
   <div class="tabs">
     <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">🏠 概観</button>
@@ -530,7 +533,7 @@
 </div><!-- /tab-claims -->
 
 <div class="tab-panel tab-hidden" id="tab-contacts">
-<h2>連携情報（連絡先）— 2026年7月</h2>
+<h2>連携情報（連絡先）— <span id="monthTitleText2">2026年7月</span></h2>
 <div class="sub">支店連絡先・代理店（現場）連絡先をイベントごとに一覧表示。委託先申告ベースのため月次で更新が必要。</div>
 <div class="toolbar">
   <label>週: <select id="cWeekFilter" onchange="applyContactFilter()"><option value="">全て</option></select></label>
@@ -634,6 +637,30 @@ const DATA = [
 ["2W","90","ランクB","神）神奈川支店","ららぽーと横浜","3F","3階IY連絡口","","","","中","20","","7月11日","7月12日","2","","ルーデンス","24","12","13"],
 ["3W","91","ランクB","神）神奈川支店","ららぽーと横浜","2F","2階ノースストレート（ノースコート側）","","","","小","12","","7月18日","7月20日","3","","ルーデンス","57","19","4"],
 ["4W","92","ランクB","神）神奈川支店","ららぽーと横浜","2F","2階ノースストレート（ノースコート側）","","","","小","12","","7月25日","7月26日","2","","ルーデンス","38","19","4"],
+];
+
+// 目標値・休日/日・平日/日は未申告のため空欄（決まり次第、台帳タブで直接入力）
+const DATA_202608 = [
+["1W","","ランクA","神）神奈川支店","ららぽーと海老名","3F","3-⑥東側エスカレーター前","4F","4-②北側エスカレーター前Ⓐ","7/29～31：31901（4-②北側エスカレーター前Ⓐ）、8/1～2：31903（3-⑥東側エスカレーター前）","中","27","40","7月29日","8月2日","5","","ルーデンス","","",""],
+["1W","","ランクB","山）山梨支店","イオンモール甲府昭和","2F","ほたる南ブリッジ（2F）","","","","中","15","","8月1日","8月2日","2","","ルーデンス","","",""],
+["1W","","ランクB","千）千葉支店","ジョイフル本田千葉ニュータウン","1F","生活館ロビー（たっぷり庵前）","","","","小","10.8","","8月1日","8月2日","2","","ルーデンス","","",""],
+["1W","","ランクB","千）千葉支店","ジョイフル本田千葉ニュータウン","1F","生活館ロビー（たっぷり庵前）","","","","小","10.8","","8月3日","8月5日","3","","ルーデンス","","",""],
+["1W","","ランクB","神）神奈川支店","ららぽーと横浜","2F","2階ノースストレート（ノースコート側）","","","","小","12","","8月1日","8月2日","2","","ルーデンス","","",""],
+["2W","","ランクB","山）山梨支店","イオンモール甲府昭和","2F","ほたる南ブリッジ（2F）","","","","中","15","","8月8日","8月9日","2","","ルーデンス","","",""],
+["2W","","ランクB","千）千葉支店","ユニモちはら台","2F","丸善前","","","","小","10","","8月8日","8月9日","2","","ルーデンス","","",""],
+["2W","","ランクB","神）神奈川支店","ららぽーと横浜","3F","3階ノースカーブモール入口","","","","小","14","","8月8日","8月9日","2","","ルーデンス","","",""],
+["3W","","ランクA","神）神奈川支店","ららぽーと海老名","3F","3-①南側エスカレーター前","4F","4-①西側エスカレーター前","8/12：31901（4-②北側エスカレーター前Ⓐ）、8/13～14：31904（4-①西側エスカレーター前）、8/15～16：31908（3-①南側エスカレーター前）","小","11.7","27","8月12日","8月16日","5","","ルーデンス","","",""],
+["3W","","ランクB","山）山梨支店","イオンモール甲府昭和","2F","ほたる南ブリッジ（2F）","","","","中","15","","8月15日","8月16日","2","","ルーデンス","","",""],
+["3W","","ランクB","多）多摩支店","イオンモール多摩平の森","1F","アエナ前","","","","大","36","","8月15日","8月16日","2","","ルーデンス","","",""],
+["3W","","ランクB","神）神奈川支店","ららぽーと横浜","3F","3階ノースカーブモール入口","","","","小","14","","8月15日","8月16日","2","","ルーデンス","","",""],
+["4W","","ランクA","神）神奈川支店","ららぽーと海老名","4F","4-②北側エスカレーター前Ⓐ","","","","大","40","","8月19日","8月23日","5","","ルーデンス","","",""],
+["4W","","ランクB","山）山梨支店","イオンモール甲府昭和","2F","ほたる南ブリッジ（2F）","","","","中","15","","8月22日","8月23日","2","","ルーデンス","","",""],
+["4W","","ランクB","多）多摩支店","イオンモール多摩平の森","3F","ダイソー前","","","","小","7.5","","8月22日","8月23日","2","","ルーデンス","","",""],
+["4W","","ランクB","神）神奈川支店","ららぽーと横浜","3F","3階IY連絡口","","","","中","20","","8月22日","8月23日","2","","ルーデンス","","",""],
+["5W","","ランクA","神）神奈川支店","ららぽーと海老名","1F","1-④ 北側エスカレータ- 前Ⓐ","4F","4-②北側エスカレーター前Ⓐ","8/26～28：31901（4-②北側エスカレーター前Ⓐ）、8/29～30：31907（1-④ 北側エスカレータ- 前Ⓐ）","小","9","40","8月26日","8月30日","5","","ルーデンス","","",""],
+["5W","","ランクB","山）山梨支店","イオンモール甲府昭和","2F","ほたる南ブリッジ（2F）","","","","中","15","","8月29日","8月30日","2","","ルーデンス","","",""],
+["5W","","ランクB","千）千葉支店","ユニモちはら台","2F","ダイソー前","","","","小","10","","8月29日","8月30日","2","","ルーデンス","","",""],
+["5W","","ランクB","神）神奈川支店","ららぽーと横浜","2F","ノースカーブモール入口","","","","中","24.5","","8月29日","8月30日","2","","ルーデンス","","",""],
 ];
 
 // ===== クレーム蓄積シート =====
@@ -743,6 +770,7 @@ function applyClaimFilter(){
 const CONTACT_COLS = 17;
 const CONTACT_FIELD_LABELS = ['実施週','項番','施設名','開始日','終了日','代表(連携店舗)','連携②','連携③','支店担当者名','支店部署名','支店連絡先','支店メール','代理店担当者名','代理店部署名','代理店連絡先','代理店メール','備考'];
 const CONTACT_DATA = [["3W", "17", "トレッサ横浜", "7月17日", "7月20日", "神）ドコモショップトレッサ横浜店", "神）ドコモショップ綱島店", "神）ドコモショップ横浜モアーズ店", "鈴木　宏幸", "神奈川支店営業部営業担当", "090-1425-0883", "hiroyuki.suzuki.fg@nttdocomo.com", "天野店長・森川副店長・和田副店長", "トレッサ横浜店", "045-542-7282", "y.amano@kcs.ne.jp; emorikawa@kcs.ne.jp; m083182wad@kcs.ne.jp", "天野店長異動の可能性有"], ["1W", "21", "ららぽーと海老名", "7月1日", "7月5日", "神）ドコモショップ海老名西口店", "神）ドコモショップ久里浜店", "神）ドコモショップ武蔵小杉店", "６月中連絡先：吉野　由夏\n7月以降担当：杉森", "営業部", "吉野　080-2180-9272（6月まで）\n杉森　　080-2212-8090（7月以降）", "yuka.yoshino.tx@nttdocomo.com（6月まで）\nkousuke.sugimori.xg@s1.nttdocomo.com（7月以降）\ntae.takayama.kd@nttdocomo.com（7月以降）\nikemoto@nttdocomo.com（7月以降）", "山﨑店長", "ドコモショップ海老名西口店", "090-7198-7193", "m-yamazaki@t-gaia.co.jp", "６月中連絡先：吉野　由夏\t神奈川支店営業部営業担当\t080-2180-9272\tyuka.yoshino.tx@nttdocomo.com"], ["2W", "22", "ららぽーと海老名", "7月8日", "7月12日", "神）ドコモショップ海老名西口店", "神）ドコモショップ久里浜店", "神）ドコモショップ武蔵小杉店", "６月中連絡先：吉野　由夏\n7月以降担当：杉森", "営業部", "吉野　080-2180-9272（6月まで）\n杉森　　080-2212-8090（7月以降）", "yuka.yoshino.tx@nttdocomo.com（6月まで）\nkousuke.sugimori.xg@s1.nttdocomo.com（7月以降）\ntae.takayama.kd@nttdocomo.com（7月以降）\nikemoto@nttdocomo.com（7月以降）", "山﨑店長", "ドコモショップ海老名西口店", "090-7198-7193", "m-yamazaki@t-gaia.co.jp", "６月中連絡先：吉野　由夏\t神奈川支店営業部営業担当\t080-2180-9272\tyuka.yoshino.tx@nttdocomo.com"], ["1W", "29", "アリオ橋本", "7月4日", "7月5日", "神）ドコモショップアリオ橋本店", "神）ドコモショップミウィ橋本店", "多）ドコモショップ八王子ユ－ロ－ド店", "齋藤/坂上", "神奈川支店営業部営業担当", "\t090-1115-3814/\t080-2908-1942", "\thikaru.saitou.be@s1.nttdocomo.com/yuuki.sakaue.ph@nttdocomo.com", "一和田店長/大野副店長", "ドコモショップアリオ橋本店", "080-1284-7709／080-9278-2314", "ds.ario-hashimoto-t@itx-corp.co.jp／ds.ario-hashimoto-f@itx-corp.co.jp", ""], ["4W", "32", "アリオ橋本", "7月25日", "7月26日", "神）ドコモショップアリオ橋本店", "神）ドコモショップミウィ橋本店", "多）ドコモショップ八王子ユ－ロ－ド店", "齋藤/坂上", "神奈川支店営業部営業担当", "\t090-1115-3814/\t080-2908-1942", "\thikaru.saitou.be@s1.nttdocomo.com/yuuki.sakaue.ph@nttdocomo.com", "一和田店長/大野副店長", "ドコモショップアリオ橋本店", "080-1284-7709／080-9278-2314", "ds.ario-hashimoto-t@itx-corp.co.jp／ds.ario-hashimoto-f@itx-corp.co.jp", ""], ["1W", "33", "アリオ西新井", "7月4日", "7月5日", "東）ドコモショップアリオ西新井店", "", "", "秋元晃介", "東京支店営業部", "090-8683-1966", "kousuke.akimoto.av@nttdocomo.com", "佐藤店長", "アリオ西新井店", "080-8760-6996", "ds.nishiarai-t@itx-corp.co.jp", ""], ["2W", "34", "アリオ西新井", "7月11日", "7月12日", "東）ドコモショップアリオ西新井店", "", "", "秋元晃介", "東京支店営業部", "090-8683-1966", "kousuke.akimoto.av@nttdocomo.com", "佐藤店長", "アリオ西新井店", "080-8760-6996", "ds.nishiarai-t@itx-corp.co.jp", ""], ["2W", "38", "アリオ蘇我", "7月11日", "7月12日", "千）ドコモショップ　市原店", "千）ドコモショップアリオ蘇我店", "", "植草めぐみ", "千葉支店　営業部", "090-9014-2226", "megumi.uekusa.hg@nttdocomo.com", "佐藤副店長", "アリオ蘇我店", "090-5449-0633", "sato.h@takahatacom.co.jp", ""], ["1W", "49", "イオンモール甲府昭和", "7月4日", "7月5日", "山）ドコモショップイオンモール甲府昭和店", "", "", "中村建大", "山梨支店営業部", "090-7187-5816", "kenta.nakamura.an@nttdocomo.com", "栗原 竜二", "イオンモール甲府昭和店", "080-8018-0620", "r_kurihara@sin.co.jp", ""], ["2W", "50", "イオンモール甲府昭和", "7月10日", "7月12日", "山）ドコモショップイオンモール甲府昭和店", "", "", "中村建大", "山梨支店営業部", "090-7187-5816", "kenta.nakamura.an@nttdocomo.com", "栗原 竜二", "イオンモール甲府昭和店", "080-8018-0620", "r_kurihara@sin.co.jp", ""], ["3W", "51", "イオンモール甲府昭和", "7月18日", "7月20日", "山）ドコモショップイオンモール甲府昭和店", "", "", "中村建大", "山梨支店営業部", "090-7187-5816", "kenta.nakamura.an@nttdocomo.com", "栗原 竜二", "イオンモール甲府昭和店", "080-8018-0620", "r_kurihara@sin.co.jp", ""], ["4W", "52", "イオンモール甲府昭和", "7月24日", "7月27日", "山）ドコモショップイオンモール甲府昭和店", "", "", "中村建大", "山梨支店営業部", "090-7187-5816", "kenta.nakamura.an@nttdocomo.com", "栗原 竜二", "イオンモール甲府昭和店", "080-8018-0620", "r_kurihara@sin.co.jp", ""], ["4W", "64", "イオンモール多摩平の森", "7月25日", "7月26日", "多）ドコモショップイオンモール多摩平の森店", "多）ドコモショップ京王聖蹟桜ヶ丘店", "多）ドコモショップ高幡不動店", "木枝、小澤、松田", "多摩支店　営業部", "090-7384-3015", "tama-sales_team1-ml@ml.nttdocomo.com", "石黒店長、牧野店長（補佐担当）", "DSイオンモール多摩平の森店、DS稲城矢野口店", "石黒：080-1176-3608,牧野（石黒店長に繋がらない場合）：070-4006-3575", "taga@t-gaia.co.jp,makino@t-gaia.co.jp,yu-kano@t-gaia.co.jp,t-ishiguro@t-gaia.co.jp,urakawa@t-gaia.co.jp,r-kozakai@t-gaia.co.jp,chino@t-gaia.co.jp,sho-hashimoto@t-gaia.co.jp,hisano@t-gaia.co.jp,yamori@t-gaia.co.jp", "連絡先メールアドレスについてはエリア長、エリア内店長全員を記載しております"], ["1W", "81", "ユニモちはら台", "7月4日", "7月5日", "千）ドコモショップユニモちはら台店", "千）ドコモショップ君津店", "千）ドコモショップ　松戸店", "石川貴大\n丸山かほり\n藤川奈々", "営業部", "080-1236-5250\n080-1251-0871\n090-7115-6167", "takahiro.ishikawa.kr@nttdocomo.com\nmaruyamakah@nttdocomo.com\nnana.fujikawa.at@nttdocomo.com", "◆ユニモちはら台店：秀浦店長\n◆君津店：阿部店長・大西副店長\n◆松戸店：江口店長・山本副店長\n◆イオンモール船橋店：小山店長・俵田副店長・木原副店長", "ユニモちはら台店・君津店・松戸店・AM船橋店", "◆ユニモちはら台店：秀浦店長(\n080-2163-7997)\n◆君津店：阿部店長(080-7702-4316)・大西副店長(070-4467-3265)\n◆松戸店：江口店長(080-9212-6817)・山本副店長(080-8726-2643)\n◆イオンモール船橋店：小山店長(090-7844-7044)・俵田副店長(080-1170-0044)・木原副店長(070‐4203-1982)", "", "削除：7月より「石川貴大」\n追加：7月より「井出光俊」メアド：mitsutoshi.ide.ax@nttdocomo.com/連絡先：090-7491-4353"], ["4W", "84", "ユニモちはら台", "7月25日", "7月26日", "千）ドコモショップユニモちはら台店", "千）ドコモショップ君津店", "千）ドコモショップ　松戸店", "石川貴大\n丸山かほり\n藤川奈々", "営業部", "080-1236-5250\n080-1251-0871\n090-7115-6167", "takahiro.ishikawa.kr@nttdocomo.com\nmaruyamakah@nttdocomo.com\nnana.fujikawa.at@nttdocomo.com", "◆ユニモちはら台店：秀浦店長\n◆君津店：阿部店長・大西副店長\n◆松戸店：江口店長・山本副店長\n◆イオンモール船橋店：小山店長・俵田副店長・木原副店長", "ユニモちはら台店・君津店・松戸店・AM船橋店", "◆ユニモちはら台店：秀浦店長(\n080-2163-7997)\n◆君津店：阿部店長(080-7702-4316)・大西副店長(070-4467-3265)\n◆松戸店：江口店長(080-9212-6817)・山本副店長(080-8726-2643)\n◆イオンモール船橋店：小山店長(090-7844-7044)・俵田副店長(080-1170-0044)・木原副店長(070‐4203-1982)", "", "削除：7月より「石川貴大」\n追加：7月より「井出光俊」メアド：mitsutoshi.ide.ax@nttdocomo.com/連絡先：090-7491-4353"], ["1W", "89", "ららぽーと横浜", "7月4日", "7月5日", "神）ドコモショップららぽーと横浜店", "", "", "6月中：池本\n7月以降：山内\n\n通期サブ担当：横山", "営業部", "池本：090-9019-9809（6月まで）\n山内：090-3238-9824（7月以降）", "yamauchiko@nttdocomo.com\nikemoto@nttdocomo.com\ntae.takayama.kd@nttdocomo.com", "大政副店長\n湯川店長\n小林副店長\n金城副店長", "ドコモショップららぽーと横浜店", "080-8411-7867\n080-7882-8279\n090-4027-5594\n090-3071-0539", "omasa-y@mxmobiling.com\nyukawa-st@mxmobiling.com\nkobayashi-tky@mxmobiling.com\nkinjyou-m@mxmobiling.com", "６月中連絡先：池本　香織\t営業部\t090-9019-9809\t\"ikemoto@nttdocomo.com　\ntae.takayama.kd@nttdocomo.com\""], ["2W", "90", "ららぽーと横浜", "7月11日", "7月12日", "神）ドコモショップららぽーと横浜店", "", "", "6月中：池本\n7月以降：山内\n\n通期サブ担当：横山", "営業部", "池本：090-9019-9809（6月まで）\n山内：090-3238-9824（7月以降）", "yamauchiko@nttdocomo.com\nikemoto@nttdocomo.com\ntae.takayama.kd@nttdocomo.com", "大政副店長\n湯川店長\n小林副店長\n金城副店長", "ドコモショップららぽーと横浜店", "080-8411-7867\n080-7882-8279\n090-4027-5594\n090-3071-0539", "omasa-y@mxmobiling.com\nyukawa-st@mxmobiling.com\nkobayashi-tky@mxmobiling.com\nkinjyou-m@mxmobiling.com", "６月中連絡先：池本　香織\t営業部\t090-9019-9809\t\"ikemoto@nttdocomo.com　\ntae.takayama.kd@nttdocomo.com\""], ["3W", "91", "ららぽーと横浜", "7月18日", "7月20日", "神）ドコモショップららぽーと横浜店", "", "", "6月中：池本\n7月以降：山内\n\n通期サブ担当：横山", "営業部", "池本：090-9019-9809（6月まで）\n山内：090-3238-9824（7月以降）", "yamauchiko@nttdocomo.com\nikemoto@nttdocomo.com\ntae.takayama.kd@nttdocomo.com", "大政副店長\n湯川店長\n小林副店長\n金城副店長", "ドコモショップららぽーと横浜店", "080-8411-7867\n080-7882-8279\n090-4027-5594\n090-3071-0539", "omasa-y@mxmobiling.com\nyukawa-st@mxmobiling.com\nkobayashi-tky@mxmobiling.com\nkinjyou-m@mxmobiling.com", "６月中連絡先：池本　香織\t営業部\t090-9019-9809\t\"ikemoto@nttdocomo.com　\ntae.takayama.kd@nttdocomo.com\""], ["4W", "92", "ららぽーと横浜", "7月25日", "7月26日", "神）ドコモショップららぽーと横浜店", "", "", "6月中：池本\n7月以降：山内\n\n通期サブ担当：横山", "営業部", "池本：090-9019-9809（6月まで）\n山内：090-3238-9824（7月以降）", "yamauchiko@nttdocomo.com\nikemoto@nttdocomo.com\ntae.takayama.kd@nttdocomo.com", "大政副店長\n湯川店長\n小林副店長\n金城副店長", "ドコモショップららぽーと横浜店", "080-8411-7867\n080-7882-8279\n090-4027-5594\n090-3071-0539", "omasa-y@mxmobiling.com\nyukawa-st@mxmobiling.com\nkobayashi-tky@mxmobiling.com\nkinjyou-m@mxmobiling.com", "６月中連絡先：池本　香織\t営業部\t090-9019-9809\t\"ikemoto@nttdocomo.com　\ntae.takayama.kd@nttdocomo.com\""]];
+const CONTACT_DATA_202608 = []; // 8月分は委託先申告待ち。連携情報タブで随時追加
 const CONTACT_LINK_COLS = [10,11,14,15]; // 支店連絡先,支店メール,代理店連絡先,代理店メール
 function linkifyCell(td){
   const text = td.textContent;
@@ -862,7 +890,22 @@ const TARGET_IDX = 20;
 const REQUIRED_COLS = [4,5,14,15,19,20]; // 支店,施設名,開始日,終了日,ディレクター,目標値
 const HOL_IDX = 21, WK_IDX = 22;
 const YEAR = 2026;
-const LS_KEY = 'event-ledger-v3';
+// ===== 月切替 =====
+// 月ごとに台帳・連携情報・クレーム・履歴を完全分離（Firebaseのroomごと分ける）。
+// 7月は既存のROOM_IDをそのまま使う（過去データ互換のため変更しない）
+const ROOM_ID_BASE = 'shutoken-2026-6ddee46ab67eefec76082fff';
+const MONTHS = [
+  {key:'2026-07', label:'2026年7月', roomId:ROOM_ID_BASE, ledgerSeed:()=>DATA, contactSeed:()=>CONTACT_DATA},
+  {key:'2026-08', label:'2026年8月', roomId:ROOM_ID_BASE+'-08', ledgerSeed:()=>DATA_202608, contactSeed:()=>CONTACT_DATA_202608},
+];
+const CURRENT_MONTH_LS_KEY = 'event-ledger-current-month';
+function getStoredMonth(){
+  try{ const m = localStorage.getItem(CURRENT_MONTH_LS_KEY); if(m && MONTHS.some(x=>x.key===m)) return m; }catch(e){}
+  return MONTHS[0].key;
+}
+let currentMonthKey = getStoredMonth();
+function currentMonth(){ return MONTHS.find(m=>m.key===currentMonthKey); }
+function lsKeyFor(month){ return 'event-ledger-v3-'+month; }
 const MOBILE_VIEW_KEY = 'event-ledger-mobile-view';
 const DETAIL_COLS = [2,3,6,7,8,9,10,11,12,13,16,17,21,22,25,26,27,28,30,31,32];
 const EDITOR_NAME_KEY = 'event-ledger-editor-name';
@@ -1594,7 +1637,7 @@ function saveAll(){
   clearTimeout(saveTimer);
   saveTimer = setTimeout(()=>{
     const state = collectState();
-    try{ localStorage.setItem(LS_KEY, JSON.stringify(state));
+    try{ localStorage.setItem(lsKeyFor(currentMonthKey), JSON.stringify(state));
       showToast('自動保存済 '+new Date().toLocaleTimeString(), 'ok');
     }catch(e){}
     if(window.__fb && window.__fb.enabled){
@@ -1621,7 +1664,7 @@ function applyState(state){
   evBilling.value = state.billing||'';
   applyClaims(state.claims||[]);
   applyContacts(state.contacts||[]);
-  try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){}
+  try{ localStorage.setItem(lsKeyFor(currentMonthKey), JSON.stringify(state)); }catch(e){}
   applyingRemote = false;
   applyFilter();
 }
@@ -1642,9 +1685,10 @@ window.addEventListener('fb-ready', ()=>{
     if(remote && remote._meta && remote._meta.by===CLIENT_ID){ lastKnownState = remote; return; }  // 自分の書込みは無視
     if(remote && remote.rows){
       // contactsフィールドがまだ存在しない古いデータ→初期データを一度だけ補完してpush
-      if(remote.contacts === undefined && CONTACT_DATA.length){
-        remote = {...remote, contacts: CONTACT_DATA};
-        window.__fb.push({contacts: CONTACT_DATA});
+      const seedContacts = currentMonth().contactSeed();
+      if(remote.contacts === undefined && seedContacts.length){
+        remote = {...remote, contacts: seedContacts};
+        window.__fb.push({contacts: seedContacts});
       }
       applyState(remote);
       lastKnownState = remote;
@@ -1698,7 +1742,7 @@ async function restoreHistory(key){
 
 function loadAll(){
   let state = null;
-  try{ state = JSON.parse(localStorage.getItem(LS_KEY)); }catch(e){}
+  try{ state = JSON.parse(localStorage.getItem(lsKeyFor(currentMonthKey))); }catch(e){}
   if(state && state.rows && state.rows.length){
     dailyData = state.daily || {};
     state.rows.forEach(d=>addRow(d));
@@ -1709,18 +1753,18 @@ function loadAll(){
     applyClaims(state.claims||[]);
     applyContacts(state.contacts||[]);
   }else{
-    DATA.forEach(d=>addRow(convData(d)));
+    currentMonth().ledgerSeed().forEach(d=>addRow(convData(d)));
     updateClaimsSummary();
-    applyContacts(CONTACT_DATA);
+    applyContacts(currentMonth().contactSeed());
   }
 }
 
 function resetAll(){
   const shared = window.__fb && window.__fb.enabled;
   if(!confirm('入力した実績・日別データを破棄して初期データに戻します。'+(shared?'【共有中: 全員のデータがリセットされます】':'')+'よろしいですか？')) return;
-  localStorage.removeItem(LS_KEY);
+  localStorage.removeItem(lsKeyFor(currentMonthKey));
   if(shared){
-    const rows = DATA.map(d=>{ const v = convData(d); while(v.length<28) v.push(''); return v; });
+    const rows = currentMonth().ledgerSeed().map(d=>{ const v = convData(d); while(v.length<28) v.push(''); return v; });
     window.__fb.push({rows, daily:{}, minus:0, aladinC:false, aladinH:false, billing:'', _meta:{ts:Date.now(), by:'reset'}});
   }
   location.reload();
@@ -1799,6 +1843,42 @@ function initSortHeaders(){
   });
 }
 
+// ===== 月切替 =====
+function updateMonthTitle(){
+  const label = currentMonth().label;
+  document.getElementById('monthTitleText').textContent = label;
+  document.getElementById('monthTitleText2').textContent = label;
+  document.title = '首都圏支社イベント実績管理簿（'+label+'）';
+}
+function initWeekBranchFilters(){
+  fWeek.innerHTML = '<option value="">全て</option>';
+  fBranch.innerHTML = '<option value="">全て</option>';
+  [...new Set(currentMonth().ledgerSeed().map(d=>d[0]))].sort().forEach(v=>fWeek.add(new Option(v,v)));
+  [...new Set(currentMonth().ledgerSeed().map(d=>d[3]))].sort().forEach(v=>fBranch.add(new Option(v,v)));
+}
+function initMonthSelect(){
+  const sel = document.getElementById('monthSelect');
+  sel.innerHTML = '';
+  MONTHS.forEach(m=>sel.add(new Option(m.label, m.key)));
+  sel.value = currentMonthKey;
+}
+async function switchMonth(monthKey){
+  if(monthKey===currentMonthKey || !MONTHS.some(m=>m.key===monthKey)) return;
+  currentMonthKey = monthKey;
+  try{ localStorage.setItem(CURRENT_MONTH_LS_KEY, monthKey); }catch(e){}
+  document.getElementById('monthSelect').value = monthKey;
+  updateMonthTitle();
+  document.querySelector('#ledger tbody').innerHTML = '';
+  document.querySelector('#claimsTable tbody').innerHTML = '';
+  dailyData = {};
+  evMinus.value = 0; evBilling.value = ''; evAladinCard.checked = false; evAladinHikari.checked = false;
+  loadAll();
+  initWeekBranchFilters();
+  updateAll();
+  await window.connectRoom(currentMonth().roomId);
+  showToast(currentMonth().label+'に切替えました', 'ok');
+}
+
 initLockState();
 loadAll();
 applyLockState(editUnlocked);
@@ -1806,8 +1886,9 @@ initSortHeaders();
 initSimpleView();
 initTab();
 initFontSize();
-[...new Set(DATA.map(d=>d[0]))].sort().forEach(v=>fWeek.add(new Option(v,v)));
-[...new Set(DATA.map(d=>d[3]))].sort().forEach(v=>fBranch.add(new Option(v,v)));
+initMonthSelect();
+updateMonthTitle();
+initWeekBranchFilters();
 updateAll();
 
 if('serviceWorker' in navigator){
@@ -1834,25 +1915,36 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "11921448608",
   appId: "1:11921448608:web:bc18cff826b568a15b33c5"
 };
-const ROOM_ID = 'shutoken-2026-6ddee46ab67eefec76082fff';
+// ROOM_IDは月ごとに異なる（MONTHS参照）。7月は既存ROOM_IDをそのまま使い過去データと互換。
 
 window.__fb = {enabled:false};
-if(FIREBASE_CONFIG && ROOM_ID && !ROOM_ID.startsWith('CHANGE-ME')){
+let __fbApp = null, __fbDb = null, __fbSdk = null, __fbUnsub = null;
+// 月切替のたびに呼ばれる。Firebase Appの初期化は初回のみ、roomの接続（listen先）は毎回張り直す
+window.connectRoom = async function(roomId){
+  if(__fbUnsub){ __fbUnsub(); __fbUnsub = null; }
+  window.__fb = {enabled:false};
+  if(!(FIREBASE_CONFIG && roomId && !roomId.startsWith('CHANGE-ME'))){
+    window.dispatchEvent(new Event('fb-ready'));
+    return;
+  }
   try{
-    const {initializeApp} = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
-    const {getDatabase, ref, onValue, update, push}
-      = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js');
-    const app = initializeApp(FIREBASE_CONFIG);
-    const db = getDatabase(app);
-    const roomRef = ref(db, 'rooms/'+ROOM_ID);
+    if(!__fbSdk){
+      const {initializeApp} = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+      const dbMod = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js');
+      __fbApp = initializeApp(FIREBASE_CONFIG);
+      __fbDb = dbMod.getDatabase(__fbApp);
+      __fbSdk = dbMod;
+    }
+    const {ref, onValue, update, push} = __fbSdk;
+    const roomRef = ref(__fbDb, 'rooms/'+roomId);
     // historyはrooms配下ではなく独立パスに置く。
     // rooms/$room に完全listen(onValue)があると、子パスへのクエリがそのlistenの
     // ローカルキャッシュから古いデータを返すことがあるため（overlapping listener問題）
-    const historyRef = ref(db, 'history/'+ROOM_ID);
+    const historyRef = ref(__fbDb, 'history/'+roomId);
     // JS SDKのonValue/get()は、rooms/$room上の常時listenと絡んでローカルキャッシュが
     // 古いまま返ることがあるため（overlapping listener問題）、historyの読み書きは
     // SDKのクエリ機構を通さずREST APIを直接叩いて確実にサーバーの最新値を取る
-    const HISTORY_REST_BASE = FIREBASE_CONFIG.databaseURL + '/history/' + ROOM_ID;
+    const HISTORY_REST_BASE = FIREBASE_CONFIG.databaseURL + '/history/' + roomId;
     window.__fb = {
       enabled: true,
       // update()は指定キーのみ上書き。history等の兄弟ノードを消さない
@@ -1860,7 +1952,7 @@ if(FIREBASE_CONFIG && ROOM_ID && !ROOM_ID.startsWith('CHANGE-ME')){
       push(state){ update(roomRef, JSON.parse(JSON.stringify(state))).catch(e=>console.error('sync push failed', e)); },
       // claims/contactsは空配列だとFirebase上でキーごと消える（=undefinedで返る）ため、
       // ||[]で必ず配列に正規化する。ここを怠るとundefinedがhistory等に混入しpush()が例外で失敗する
-      subscribe(cb){ onValue(roomRef, snap=>{ const v = snap.val(); cb(v ? {rows:v.rows, daily:v.daily, minus:v.minus, aladinC:v.aladinC, aladinH:v.aladinH, billing:v.billing, claims:v.claims||[], contacts:v.contacts||[], _meta:v._meta} : null); }, e=>console.error('sync read failed', e)); },
+      subscribe(cb){ __fbUnsub = onValue(roomRef, snap=>{ const v = snap.val(); cb(v ? {rows:v.rows, daily:v.daily, minus:v.minus, aladinC:v.aladinC, aladinH:v.aladinH, billing:v.billing, claims:v.claims||[], contacts:v.contacts||[], _meta:v._meta} : null); }, e=>console.error('sync read failed', e)); },
       pushHistory(entry){
         push(historyRef, JSON.parse(JSON.stringify(entry))).catch(e=>console.error('history push failed', e));
         // 40件超えたら古い分を削除（容量抑制、REST経由）
@@ -1880,8 +1972,9 @@ if(FIREBASE_CONFIG && ROOM_ID && !ROOM_ID.startsWith('CHANGE-ME')){
       },
     };
   }catch(e){ console.error('Firebase初期化失敗', e); }
-}
-window.dispatchEvent(new Event('fb-ready'));
+  window.dispatchEvent(new Event('fb-ready'));
+};
+window.connectRoom(window.currentMonth().roomId);
 </script>
 </body>
 </html>
