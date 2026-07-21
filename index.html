@@ -274,6 +274,18 @@
     body.view-only #claimsTable td[contenteditable]{background:transparent;}
   }
   body.view-only input.dir{cursor:default;}
+  /* ===== 未入力の警告 ===== */
+  #ledger td.missing{background:rgba(230,80,60,0.16) !important;outline:1.5px solid rgba(230,80,60,0.55);outline-offset:-2px;}
+  #ledger tr.row-warn td.st{position:relative;}
+  #ledger tr.row-warn td.st::after{content:"⚠";color:#d9534f;font-size:12px;margin-left:2px;}
+  /* ===== 並び替え可能なヘッダ ===== */
+  #ledger th.sortable{cursor:pointer;user-select:none;}
+  #ledger th.sortable:hover{filter:brightness(1.15);}
+  #ledger th.sortable .sort-ind{font-size:10px;opacity:.85;margin-left:2px;}
+  /* ===== 行削除ボタン ===== */
+  .delrow-btn{border:none;background:#c0392b;color:#fff;border-radius:4px;cursor:pointer;font-size:11px;line-height:1;padding:3px 6px;margin-top:4px;}
+  .delrow-btn:hover{background:#a93226;}
+  .delrow-btn:disabled{opacity:.35;cursor:not-allowed;}
 </style>
 </head>
 <body>
@@ -847,6 +859,7 @@ const DAY_COL = 34;
 const TOTAL_COLS = 35;
 const NUM_PLAN = [12,13,16,20,21,22];
 const TARGET_IDX = 20;
+const REQUIRED_COLS = [4,5,14,15,19,20]; // 支店,施設名,開始日,終了日,ディレクター,目標値
 const HOL_IDX = 21, WK_IDX = 22;
 const YEAR = 2026;
 const LS_KEY = 'event-ledger-v3';
@@ -937,6 +950,7 @@ function applyLockState(unlocked){
   document.querySelectorAll('.editable-input').forEach(inp=>{ inp.disabled = !unlocked; });
   // addClaimBtnは対象外: クレームは誰でも記録できる運用
   [evMinus, evBilling, evAladinCard, evAladinHikari, addRowBtn, resetBtn, addContactBtn].forEach(el=>{ if(el) el.disabled = !unlocked; });
+  document.querySelectorAll('.delrow-btn').forEach(b=>{ b.disabled = !unlocked; });
   lockBtn.textContent = unlocked ? '編集を終了（閲覧のみに戻す）' : '編集する';
   lockBtn.className = 'lockbtn ' + (unlocked ? 'unlocked' : 'locked');
   updateEditorNameLabel();
@@ -1015,6 +1029,13 @@ function addRow(data){
       b.className = 'mini-btn';
       b.onclick = ()=>openDaily(tr.rowIndex-2);   // thead2行分
       td.appendChild(b);
+      const del = document.createElement('button');
+      del.textContent = '✕ 行削除';
+      del.className = 'delrow-btn';
+      del.disabled = !isEditUnlocked();
+      del.onclick = ()=>deleteRowAt(tr);
+      td.appendChild(document.createElement('br'));
+      td.appendChild(del);
       td.style.textAlign = 'center';
     }else if(i===DIRECTOR_IDX){
       const inp = document.createElement('input');
@@ -1040,6 +1061,31 @@ function addRow(data){
   updateAll();
 }
 
+// 指定行を削除。dailyDataは行位置キーのため、削除位置より後ろのキーを1つずつ前へ詰める
+function deleteRowAt(tr){
+  if(!isEditUnlocked()){ alert('編集ロック中です。「編集する」で解除してください。'); return; }
+  const tbody = document.querySelector('#ledger tbody');
+  const pos = tr.rowIndex - 2;   // thead2行分。dailyDataのキーと一致
+  const facility = tr.cells[5] ? cellText(tr.cells[5]).trim() : '';
+  const label = facility || (tr.cells[2]?('項番'+cellText(tr.cells[2]).trim()):'この行');
+  if(!confirm('「'+label+'」の行を削除します。\n実績・日別入力データも一緒に消えます。\n\n本当に削除しますか？（共有中は全員に反映されます）')) return;
+  const total = tbody.rows.length;
+  // dailyDataをpos基準で前詰め
+  const nd = {};
+  Object.keys(dailyData).forEach(k=>{
+    const i = Number(k);
+    if(Number.isNaN(i)) { nd[k] = dailyData[k]; return; }
+    if(i < pos) nd[i] = dailyData[k];
+    else if(i > pos) nd[i-1] = dailyData[k];
+    // i===pos は破棄
+  });
+  dailyData = nd;
+  tr.remove();
+  updateAll(); saveAll();
+  showToast('行を削除しました', 'ok');
+}
+
+// 旧: 最終行削除（後方互換・未使用）
 function delRow(){
   const tbody = document.querySelector('#ledger tbody');
   if(tbody.rows.length>1){
@@ -1160,6 +1206,14 @@ function updateAll(){
     c[STATUS_COL].innerHTML = label ? `<span class="st-chip ${cls}">${label}</span>` : '';
     c[STATUS_COL].className = 'st';
     if(cls==='before') cntBefore++; else if(cls==='ongoing') cntOngoing++; else if(cls==='done') cntDone++;
+    // 未入力の警告: 必須項目（支店/施設名/開始日/終了日/ディレクター/目標値）が空ならセルを強調
+    let rowMissing = false;
+    REQUIRED_COLS.forEach(ci=>{
+      const empty = cellText(c[ci]).trim()==='';
+      c[ci].classList.toggle('missing', empty);
+      if(empty) rowMissing = true;
+    });
+    r.classList.toggle('row-warn', rowMissing);
     setRate(c[29], n(c[23]), n(c[TARGET_IDX]), true);
     setRate(c[30], n(c[23])+n(c[24]), n(c[TARGET_IDX]), true);
     setRate(c[31], n(c[26]), n(c[23]), false);
@@ -1688,9 +1742,67 @@ function exportCsv(){
   URL.revokeObjectURL(a.href);
 }
 
+// ===== 実績テーブル 並び替え =====
+// dailyDataは行位置キーのため、並び替え時は各行のdailyDataも新位置へ移す
+let sortState = {col:null, dir:1};
+const SORT_TYPE = {1:'week',2:'num',4:'text',5:'text',14:'date',20:'num',23:'num',29:'pct'};
+const SORT_HEADERS = [
+  {col:1,match:'実施週'},{col:2,match:'項番'},{col:4,match:'支店'},{col:5,match:'施設名'},
+  {col:14,match:'開始日'},{col:20,match:'目標値'},{col:23,match:'HS(即日)'},{col:29,match:'達成率'}
+];
+function sortVal(cell, type){
+  const t = cellText(cell).trim();
+  if(type==='num')  return Number(t.replace(/[^0-9.-]/g,''))||0;
+  if(type==='pct')  return t===''? -1 : (Number(t.replace('%',''))||0);
+  if(type==='week'){ const m=t.match(/\d+/); return m?Number(m[0]):999; }
+  if(type==='date'){ const d=parseJpDate(t); return d?d.getTime():Infinity; }
+  return t;
+}
+function sortLedger(col){
+  if(!isEditUnlocked()){ alert('編集ロック中は並び替えできません。「編集する」で解除してください。'); return; }
+  const type = SORT_TYPE[col];
+  sortState = {col, dir:(sortState.col===col && sortState.dir===1) ? -1 : 1};
+  const tbody = document.querySelector('#ledger tbody');
+  const items = [...tbody.rows].map((tr,i)=>({tr, daily:dailyData[i], v:sortVal(tr.cells[col], type)}));
+  items.sort((a,b)=>{
+    const r = (typeof a.v==='string') ? a.v.localeCompare(b.v,'ja') : (a.v-b.v);
+    return r*sortState.dir;
+  });
+  const nd = {};
+  items.forEach((it,j)=>{ tbody.appendChild(it.tr); if(it.daily!==undefined) nd[j]=it.daily; });
+  Object.keys(dailyData).forEach(k=>{ if(Number.isNaN(Number(k))) nd[k]=dailyData[k]; });
+  dailyData = nd;
+  updateSortIndicators();
+  updateAll(); applyFilter(); saveAll();
+  showToast('並び替えました', 'ok');
+}
+function updateSortIndicators(){
+  document.querySelectorAll('#ledger th.sortable .sort-ind').forEach(s=>s.textContent='');
+  if(sortState.col!=null){
+    const th = document.querySelector('#ledger th.sortable[data-col="'+sortState.col+'"]');
+    const s = th && th.querySelector('.sort-ind');
+    if(s) s.textContent = sortState.dir===1 ? '▲' : '▼';
+  }
+}
+function initSortHeaders(){
+  const ths = [...document.querySelectorAll('#ledger thead th')];
+  SORT_HEADERS.forEach(h=>{
+    const key = h.match.replace(/\s/g,'');
+    const th = ths.find(t=>{ const x=t.textContent.replace(/\s/g,''); return !t.dataset.sortWired && (x===key || x.startsWith(key)); });
+    if(!th) return;
+    th.classList.add('sortable');
+    th.dataset.col = h.col;
+    th.dataset.sortWired = '1';
+    th.title = 'クリックで並び替え';
+    const ind = document.createElement('span'); ind.className='sort-ind'; th.appendChild(ind);
+    th.addEventListener('click', ()=>sortLedger(h.col));
+  });
+}
+
 initLockState();
 loadAll();
 applyLockState(editUnlocked);
+initSortHeaders();
 initSimpleView();
 initTab();
 initFontSize();
