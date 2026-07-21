@@ -316,6 +316,7 @@
     <div class="kpi-label">HS新規達成率（即日/目標）</div>
     <div class="kpi-value" id="ovHsRate">-</div>
     <div class="kpi-bar"><i id="ovHsBar" style="width:0%"></i></div>
+    <div class="kpi-sub" id="ovHsRemain">-</div>
   </div>
   <div class="kpi-card">
     <div class="kpi-label">委託先評価 合計</div>
@@ -1305,6 +1306,9 @@ function updateAll(){
   ovHsRate.textContent = fmt(hsR)||'-';
   ovHsBar.style.width = Math.min(hsR||0,100)+'%';
   ovHsBar.className = (hsR!==null && hsR>=100) ? '' : 'ng';
+  if(aT<=0){ ovHsRemain.textContent = '目標未入力'; ovHsRemain.className = 'kpi-sub'; }
+  else if(a1>=aT){ ovHsRemain.textContent = '目標達成済み'; ovHsRemain.className = 'kpi-sub ok'; }
+  else{ ovHsRemain.textContent = 'あと'+(aT-a1)+'台で目標達成'; ovHsRemain.className = 'kpi-sub ng'; }
   evCardRate.textContent = fmt(cR)||'-';
   evCardPt.textContent = p2+'pt'+(downC?'（乖離DOWN）':'');
   evHikariRate.textContent = fmt(hR)||'-';
