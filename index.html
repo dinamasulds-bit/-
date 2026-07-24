@@ -75,6 +75,27 @@
   .pace-chip.warn{background:var(--warn-bg);color:var(--warn);}
   .pace-chip.ng{background:var(--ng-bg);color:var(--ng);}
 
+  /* 本日の担当イベント */
+  .today-card{background:linear-gradient(135deg,var(--navy2),var(--navy));color:#fff;border-radius:var(--radius);
+    padding:18px 20px;margin-bottom:16px;box-shadow:var(--shadow);}
+  .today-card .today-empty{font-size:13px;opacity:.9;}
+  .today-event{background:rgba(255,255,255,.1);border-radius:10px;padding:14px 16px;margin-top:10px;}
+  .today-event:first-of-type{margin-top:0;}
+  .today-event .te-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;}
+  .today-event .te-facility{font-size:17px;font-weight:800;}
+  .today-event .te-branch{font-size:12px;opacity:.85;}
+  .today-event .te-bar{position:relative;background:rgba(255,255,255,.25);border-radius:6px;height:10px;overflow:hidden;margin-top:8px;}
+  .today-event .te-bar i{position:absolute;left:0;top:0;bottom:0;background:#fff;border-radius:6px;}
+  .today-event .te-nums{font-size:12px;margin-top:5px;display:flex;justify-content:space-between;opacity:.95;}
+  .today-event .te-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .today-event .te-actions button{padding:6px 12px;font-size:12px;background:#fff;color:var(--navy2);border-color:#fff;}
+  .today-event .te-actions a.contact-link{color:#fff;background:rgba(255,255,255,.18);padding:6px 12px;border-radius:8px;font-size:12px;text-decoration:none;font-weight:700;}
+  .today-label{font-size:12px;font-weight:700;opacity:.85;letter-spacing:.04em;margin-bottom:2px;}
+
+  /* 現場モード: 台帳/評価サマリ/集計タブを隠して迷わないように */
+  body.field-mode .tab-btn[data-field-hide]{display:none;}
+  #fieldModeBtn.on{background:var(--navy2);color:#fff;}
+
   /* トースト通知 */
   .toast-host{position:fixed;right:18px;bottom:18px;z-index:300;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none;}
   .toast{background:#1f2937;color:#fff;padding:10px 16px;border-radius:9px;font-size:12.5px;box-shadow:var(--shadow-lg);
@@ -295,20 +316,22 @@
     <h1>首都圏支社イベント実績管理簿（<span id="monthTitleText">2026年7月</span>）</h1>
     <div style="display:flex;gap:8px;align-items:center;">
       <select id="monthSelect" onchange="switchMonth(this.value)" style="font-weight:700;"></select>
+      <button class="sec mini-btn" id="fieldModeBtn" onclick="toggleFieldMode()">🚗 現場モード</button>
       <button class="sec mini-btn" id="fontBtn" onclick="toggleFontSize()">文字サイズ 大</button>
     </div>
   </div>
   <div class="tabs">
     <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">🏠 概観</button>
-    <button class="tab-btn" data-tab="ledger" onclick="switchTab('ledger')">📋 台帳</button>
-    <button class="tab-btn" data-tab="eval" onclick="switchTab('eval')">💯 評価サマリ</button>
-    <button class="tab-btn" data-tab="summary" onclick="switchTab('summary')">📊 集計</button>
+    <button class="tab-btn" data-tab="ledger" data-field-hide="1" onclick="switchTab('ledger')">📋 台帳</button>
+    <button class="tab-btn" data-tab="eval" data-field-hide="1" onclick="switchTab('eval')">💯 評価サマリ</button>
+    <button class="tab-btn" data-tab="summary" data-field-hide="1" onclick="switchTab('summary')">📊 集計</button>
     <button class="tab-btn" data-tab="claims" onclick="switchTab('claims')">⚠️ クレーム</button>
     <button class="tab-btn" data-tab="contacts" onclick="switchTab('contacts')">🤝 連携情報</button>
   </div>
 </div>
 
 <div class="tab-panel" id="tab-overview">
+<div id="todayCardHost"></div>
 <button onclick="openEasy()" style="width:100%;background:#1a7a3a;border-color:#1a7a3a;font-size:15px;padding:14px;margin-bottom:16px;">📝 今日の実績をかんたん入力</button>
 <h2>今月の進捗ひと目</h2>
 <div class="kpi-grid">
@@ -1234,6 +1257,48 @@ function groupSummary(tableId, keyIdx, extra){
   });
 }
 
+// 概観: 本日実施中のイベントを大きく表示（現場スタッフが開いてすぐ状況が分かるように）
+function renderTodayCard(){
+  const host = document.getElementById('todayCardHost');
+  if(!host) return;
+  const rows = [...document.querySelectorAll('#ledger tbody tr')];
+  const todays = [];
+  rows.forEach((r,i)=>{
+    const [,cls] = rowStatus(r.cells);
+    if(cls==='ongoing') todays.push({r,i});
+  });
+  if(!todays.length){
+    host.innerHTML = `<div class="today-card"><div class="today-label">📍 本日の担当イベント</div><div class="today-empty">本日実施中のイベントはありません。</div></div>`;
+    return;
+  }
+  const contactRows = [...document.querySelectorAll('#contactsTable tbody tr')];
+  const eventsHtml = todays.map(({r,i})=>{
+    const c = r.cells;
+    const facility = cellText(c[5]).trim();
+    const branch = cellText(c[4]).trim();
+    const week = cellText(c[1]).trim();
+    const target = n(c[TARGET_IDX]);
+    const actual = n(c[23]);
+    const p = target>0 ? Math.round(actual/target*100) : null;
+    const paceText = (c[PACE_COL].textContent||'').trim();
+    const contact = contactRows.find(cr=>cellText(cr.cells[2]).trim()===facility && cellText(cr.cells[0]).trim()===week)
+      || contactRows.find(cr=>cellText(cr.cells[2]).trim()===facility);
+    const branchTel = contact ? contact.cells[10].innerHTML.trim() : '';
+    const agentTel = contact ? contact.cells[14].innerHTML.trim() : '';
+    return `<div class="today-event">
+      <div class="te-head"><span class="te-facility">${facility||'(施設名未入力)'}</span><span class="te-branch">${branch}</span></div>
+      <div class="te-bar"><i style="width:${Math.min(p??0,100)}%"></i></div>
+      <div class="te-nums"><span>HS即日 ${actual} / 目標 ${target||'未設定'}</span><span>${p!==null?p+'%　':''}${paceText}</span></div>
+      <div class="te-actions">
+        <button onclick="openEasy(${i})">📝 かんたん入力</button>
+        ${branchTel?`<span style="font-size:12px;">支店 ${branchTel}</span>`:''}
+        ${agentTel?`<span style="font-size:12px;">代理店 ${agentTel}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  host.innerHTML = `<div class="today-card"><div class="today-label">📍 本日の担当イベント（${todays.length}件）</div>${eventsHtml}</div>`;
+}
+
 // 概観: 週別 目標vs実績のミニ棒グラフ
 function updateWeekChart(rows){
   const el = document.getElementById('ovWeekChart');
@@ -1303,6 +1368,7 @@ function updateAll(){
       paceWarn?`<span class="pace-chip warn">やや遅れ ${paceWarn}</span>`:'',
       paceNg?`<span class="pace-chip ng">遅れ ${paceNg}</span>`:'' ].filter(Boolean).join('');
   updateWeekChart(rows);
+  renderTodayCard();
   sumTarget.textContent = sumT.toLocaleString();
   sumPi1.textContent = s1.toLocaleString();
   sumPi2.textContent = s2.toLocaleString();
@@ -1449,6 +1515,28 @@ function initFontSize(){
   let saved = null;
   try{ saved = localStorage.getItem(FONT_SIZE_KEY); }catch(e){}
   applyFontSize(saved==='1');
+}
+
+// ===== 現場モード（現場スタッフ向けに台帳/評価サマリ/集計タブを隠す） =====
+const FIELD_MODE_KEY = 'event-ledger-field-mode';
+function applyFieldMode(on){
+  document.body.classList.toggle('field-mode', on);
+  const b = document.getElementById('fieldModeBtn');
+  if(b) b.classList.toggle('on', on);
+  if(on){
+    const activeBtn = document.querySelector('.tab-btn.active');
+    if(activeBtn && activeBtn.dataset.fieldHide) switchTab('overview');
+  }
+}
+function toggleFieldMode(){
+  const on = !document.body.classList.contains('field-mode');
+  applyFieldMode(on);
+  try{ localStorage.setItem(FIELD_MODE_KEY, on?'1':'0'); }catch(e){}
+}
+function initFieldMode(){
+  let saved = null;
+  try{ saved = localStorage.getItem(FIELD_MODE_KEY); }catch(e){}
+  applyFieldMode(saved==='1');
 }
 
 // ===== タブ切替 =====
@@ -1626,13 +1714,14 @@ function todayIso(){
   const d = new Date();
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
-function openEasy(){
+function openEasy(presetIdx){
   const rows = [...document.querySelectorAll('#ledger tbody tr')];
   if(!rows.length) return;
   const order = {'実施中':0,'開催前':1,'終了':2,'':3};
   const opts = rows.map((r,i)=>({i, label:`${r.cells[STATUS_COL].textContent||''} ${r.cells[5].textContent}（${r.cells[1].textContent} 項番${r.cells[2].textContent}）`, st:r.cells[STATUS_COL].textContent}))
     .sort((a,b)=>(order[a.st]??9)-(order[b.st]??9));
   ezFacility.innerHTML = opts.map(o=>`<option value="${o.i}">${o.label}</option>`).join('');
+  if(presetIdx!=null && rows[presetIdx]) ezFacility.value = String(presetIdx);
   ezDate.value = todayIso();
   onEzFacilityChange();
   ezLockMsg.style.display = isEditUnlocked() ? 'none' : 'block';
@@ -1651,15 +1740,29 @@ function renderEzFields(){
   const key = String(rowIdx);
   const iso = ezDate.value;
   const vals = (dailyData[key] && dailyData[key][iso]) || {};
-  ezFields.innerHTML = DAY_FIELDS.map(f=>`
+  const target = n(c[TARGET_IDX]);
+  ezFields.innerHTML = DAY_FIELDS.map(f=>{
+    const current = n(c[f.col]);
+    let progress;
+    if(f.key==='p1' && target>0){
+      const rest = target-current;
+      progress = `現在 ${current} / 目標 ${target}　${rest>0?'（あと'+rest+'）':'（達成済）'}`;
+    }else{
+      progress = `現在の累計 ${current}`;
+    }
+    return `
     <div class="ez-stepper">
-      <div class="ez-stepper-label">${f.label}</div>
+      <div>
+        <div class="ez-stepper-label">${f.label}</div>
+        <div class="sub" style="margin:0;">${progress}</div>
+      </div>
       <div class="ez-stepper-controls">
         <button class="sec ez-step-btn" type="button" onclick="ezStep('${f.key}',-1)" ${isEditUnlocked()?'':'disabled'}>−</button>
         <input type="number" inputmode="numeric" pattern="[0-9]*" min="0" class="ez-input" id="ez-${f.key}" value="${vals[f.key]??''}" ${isEditUnlocked()?'':'disabled'}>
         <button class="ez-step-btn" type="button" onclick="ezStep('${f.key}',1)" ${isEditUnlocked()?'':'disabled'}>＋</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   const s = parseJpDate(c[14].textContent);
   const holT = n(c[HOL_IDX]), wkT = n(c[WK_IDX]);
   const d = new Date(iso+'T00:00:00');
@@ -1962,6 +2065,7 @@ initSortHeaders();
 initSimpleView();
 initTab();
 initFontSize();
+initFieldMode();
 initMonthSelect();
 updateMonthTitle();
 initWeekBranchFilters();
