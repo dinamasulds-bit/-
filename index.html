@@ -360,6 +360,7 @@
   <label>状態: <select id="fStatus" onchange="applyFilter()"><option value="">全て</option><option>開催前</option><option>実施中</option><option>終了</option></select></label>
   <label>ディレクター: <select id="fDirector" onchange="applyFilter()"><option value="">全て</option></select></label>
   <button onclick="openEasy()" style="background:#1a7a3a;border-color:#1a7a3a;">📝 かんたん入力</button>
+  <button id="targetBulkBtn" onclick="openTargetBulk()" style="background:#b8860b;border-color:#b8860b;">🎯 目標値まとめ入力</button>
   <button id="addRowBtn" onclick="addRow();saveAll()">行追加</button>
   <button class="sec" onclick="exportCsv()">CSV出力</button>
   <button class="sec" onclick="window.print()">印刷</button>
@@ -606,6 +607,26 @@
     <div class="modal-head"><b id="dmTitle"></b><button class="sec" onclick="closeDaily()">閉じる</button></div>
     <div class="sub">日毎に入力すると行の実績合計に自動反映。日次目標: 土日=休日/日、平日=平日/日。</div>
     <div id="dmBody"></div>
+  </div>
+</div>
+
+<div id="targetModal" class="modal-bg" style="display:none" onclick="if(event.target===this)closeTargetBulk()">
+  <div class="modal" style="min-width:min(760px,94vw);">
+    <div class="modal-head"><b>目標値まとめ入力</b><button class="sec" onclick="closeTargetBulk()">閉じる</button></div>
+    <div class="sub">施設名・期間を見ながら目標値/休日目標/平日目標をまとめて入力できます。空欄のまま保存すると未入力扱いのままになります。</div>
+    <label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+      <input type="checkbox" id="tbMissingOnly" checked onchange="renderTargetBulk()"> 未入力の行だけ表示
+    </label>
+    <div class="wrap" style="max-height:60vh;">
+    <table id="targetBulkTable">
+      <thead><tr><th>施設名</th><th>期間</th><th style="min-width:90px">目標値</th><th style="min-width:90px">休日/日</th><th style="min-width:90px">平日/日</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:8px;">
+      <button onclick="saveTargetBulk()">保存して反映</button>
+      <button class="sec" onclick="closeTargetBulk()">キャンセル</button>
+    </div>
   </div>
 </div>
 
@@ -993,7 +1014,7 @@ function applyLockState(unlocked){
   document.querySelectorAll('.editable-cell').forEach(td=>{ td.contentEditable = unlocked; });
   document.querySelectorAll('.editable-input').forEach(inp=>{ inp.disabled = !unlocked; });
   // addClaimBtnは対象外: クレームは誰でも記録できる運用
-  [evMinus, evBilling, evAladinCard, evAladinHikari, addRowBtn, resetBtn, addContactBtn].forEach(el=>{ if(el) el.disabled = !unlocked; });
+  [evMinus, evBilling, evAladinCard, evAladinHikari, addRowBtn, resetBtn, addContactBtn, targetBulkBtn].forEach(el=>{ if(el) el.disabled = !unlocked; });
   document.querySelectorAll('.delrow-btn').forEach(b=>{ b.disabled = !unlocked; });
   lockBtn.textContent = unlocked ? '編集を終了（閲覧のみに戻す）' : '編集する';
   lockBtn.className = 'lockbtn ' + (unlocked ? 'unlocked' : 'locked');
@@ -1547,6 +1568,57 @@ function refreshDayView(){
 function closeDaily(){
   dayModal.style.display = 'none';
   currentDayRow = null;
+}
+
+// ===== 目標値まとめ入力 =====
+function openTargetBulk(){
+  document.getElementById('targetModal').style.display = 'flex';
+  renderTargetBulk();
+}
+function closeTargetBulk(){
+  document.getElementById('targetModal').style.display = 'none';
+}
+function renderTargetBulk(){
+  const missingOnly = document.getElementById('tbMissingOnly').checked;
+  const tbody = document.querySelector('#targetBulkTable tbody');
+  tbody.innerHTML = '';
+  const rows = [...document.querySelectorAll('#ledger tbody tr')];
+  rows.forEach((r, idx)=>{
+    const facility = cellText(r.cells[5]).trim();
+    const start = cellText(r.cells[14]).trim();
+    const end = cellText(r.cells[15]).trim();
+    const target = cellText(r.cells[TARGET_IDX]).trim();
+    const hol = cellText(r.cells[HOL_IDX]).trim();
+    const wk = cellText(r.cells[WK_IDX]).trim();
+    if(missingOnly && target!=='' ) return;
+    const tr = document.createElement('tr');
+    tr.dataset.rowIdx = idx;
+    tr.innerHTML = `<td>${facility||'(未入力)'}</td><td>${start}〜${end}</td>
+      <td><input type="number" class="tb-target" value="${target}" style="width:80px;"></td>
+      <td><input type="number" class="tb-hol" value="${hol}" style="width:80px;"></td>
+      <td><input type="number" class="tb-wk" value="${wk}" style="width:80px;"></td>`;
+    tbody.appendChild(tr);
+  });
+  if(!tbody.children.length){
+    tbody.innerHTML = '<tr><td colspan="5" class="sub" style="text-align:center;padding:20px;">対象の行はありません（未入力の行だけ表示中）</td></tr>';
+  }
+}
+function saveTargetBulk(){
+  if(!isEditUnlocked()){ alert('編集ロック中です。「編集する」で解除してください。'); return; }
+  const rows = [...document.querySelectorAll('#ledger tbody tr')];
+  document.querySelectorAll('#targetBulkTable tbody tr[data-row-idx]').forEach(tr=>{
+    const r = rows[Number(tr.dataset.rowIdx)];
+    if(!r) return;
+    const target = tr.querySelector('.tb-target').value.trim();
+    const hol = tr.querySelector('.tb-hol').value.trim();
+    const wk = tr.querySelector('.tb-wk').value.trim();
+    r.cells[TARGET_IDX].textContent = target;
+    r.cells[HOL_IDX].textContent = hol;
+    r.cells[WK_IDX].textContent = wk;
+  });
+  updateAll(); saveAll();
+  closeTargetBulk();
+  showToast('目標値を保存しました', 'ok');
 }
 
 // ===== かんたん入力（施設を選んで今日の数字を1画面で） =====
