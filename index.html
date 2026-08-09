@@ -240,6 +240,15 @@
     #contactsTable th:nth-child(3),#contactsTable td:nth-child(3){width:72px;}
     #contactsTable td{max-width:100px;}
     a.contact-link{white-space:nowrap;}
+    /* タップしやすいボタン（指で押しやすい44px以上） */
+    .toolbar button,.toolbar select,.tab-btn,.miss-banner button{min-height:44px;}
+    #tab-overview>button{min-height:48px;}
+    .today-event button,.te-actions button{min-height:44px;font-size:14px;}
+    /* かんたん入力・日別入力の数値欄を大きく */
+    .modal table input{width:60px;min-height:42px;font-size:16px;}
+    .card input{min-height:42px;}
+    /* 台帳の横スクロールを滑らかに（ページ戻り誤爆を防止） */
+    .wrap{overscroll-behavior-x:contain;scroll-snap-type:none;}
   }
   .lockbtn{font-weight:700;}
   .lockbtn.locked{background:#fff;color:#8a6d00;border-color:#e6b800;}
@@ -313,6 +322,18 @@
   .delrow-btn{border:none;background:#c0392b;color:#fff;border-radius:4px;cursor:pointer;font-size:11px;line-height:1;padding:3px 6px;margin-top:4px;}
   .delrow-btn:hover{background:#a93226;}
   .delrow-btn:disabled{opacity:.35;cursor:not-allowed;}
+  /* ===== 本日未入力バナー ===== */
+  #missingBanner:empty{display:none;}
+  #missingBanner{margin:0 0 14px;}
+  .miss-banner{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;background:var(--ng-bg);border:1.5px solid var(--ng);border-radius:12px;padding:11px 15px;}
+  .miss-banner .mb-text{font-weight:700;color:var(--ng);font-size:14.5px;}
+  .miss-banner.ok{background:var(--ok-bg);border-color:var(--ok);}
+  .miss-banner.ok .mb-text{color:var(--ok);}
+  .miss-banner button{background:var(--ng);border-color:var(--ng);color:#fff;font-weight:700;}
+  @keyframes rowflash{0%,100%{background:transparent;}25%,75%{background:rgba(230,80,60,.32);}}
+  #ledger tr.flash-row td{animation:rowflash 1.7s ease;}
+  /* ===== オフライン表示 ===== */
+  #netMsg:empty{display:none;}
 </style>
 </head>
 <body>
@@ -338,6 +359,7 @@
 
 <div class="tab-panel" id="tab-overview">
 <div id="todayCardHost"></div>
+<div id="missingBanner"></div>
 <button onclick="openEasy()" style="width:100%;background:#1a7a3a;border-color:#1a7a3a;font-size:15px;padding:14px;margin-bottom:16px;">📝 今日の実績をかんたん入力</button>
 <h2>今月の進捗ひと目</h2>
 <div class="kpi-grid">
@@ -400,6 +422,8 @@
   <button class="sec" onclick="openHistory()">変更履歴</button>
   <span class="savemsg" id="editorNameLabel" style="cursor:pointer;text-decoration:underline;" onclick="promptEditorName()"></span>
   <span class="savemsg" id="syncMsg" style="color:#c0392b;">共有: 未接続（ローカルのみ）</span>
+  <span class="savemsg" id="lastSavedMsg"></span>
+  <span class="savemsg" id="netMsg" style="color:#c0392b;font-weight:700;"></span>
 </div>
 
 <div class="wrap">
@@ -1085,14 +1109,36 @@ function parseJpDate(s){
   return new Date(YEAR, Number(m[1])-1, Number(m[2]));
 }
 function isoOf(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-// 2026年 国民の祝日（振替休日含む）
-const HOLIDAYS = new Set([
-'2026-01-01','2026-01-12','2026-02-11','2026-02-23','2026-03-20',
-'2026-04-29','2026-05-03','2026-05-04','2026-05-05','2026-05-06',
-'2026-07-20','2026-08-11','2026-09-21','2026-09-22','2026-09-23',
-'2026-10-12','2026-11-03','2026-11-23',
-]);
-function isHol(d){ const w=d.getDay(); return w===0||w===6||HOLIDAYS.has(isoOf(d)); }
+// 国民の祝日を年ごとに自動計算（振替休日・国民の休日を含む）。2027年以降も更新不要。
+function computeHolidays(year){
+  const iso=(m,day)=>year+'-'+String(m).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+  const nthMon=(m,nth)=>{const d=new Date(year,m-1,1);const off=(1-d.getDay()+7)%7;return 1+off+(nth-1)*7;};
+  const base=new Set([
+    iso(1,1),                       // 元日
+    iso(1,nthMon(1,2)),             // 成人の日（1月第2月曜）
+    iso(2,11),                      // 建国記念の日
+    iso(2,23),                      // 天皇誕生日
+    iso(3,Math.floor(20.8431+0.242194*(year-1980)-Math.floor((year-1980)/4))), // 春分の日
+    iso(4,29),                      // 昭和の日
+    iso(5,3), iso(5,4), iso(5,5),   // 憲法記念日・みどりの日・こどもの日
+    iso(7,nthMon(7,3)),             // 海の日（7月第3月曜）
+    iso(8,11),                      // 山の日
+    iso(9,nthMon(9,3)),             // 敬老の日（9月第3月曜）
+    iso(9,Math.floor(23.2488+0.242194*(year-1980)-Math.floor((year-1980)/4))), // 秋分の日
+    iso(10,nthMon(10,2)),           // スポーツの日（10月第2月曜）
+    iso(11,3), iso(11,23),          // 文化の日・勤労感謝の日
+  ]);
+  const result=new Set(base);
+  const parse=s=>{const p=s.split('-').map(Number);return new Date(p[0],p[1]-1,p[2]);};
+  // 振替休日：日曜と重なった祝日→直後の平日（祝日でない日）を休日に
+  [...base].forEach(s=>{const d=parse(s);if(d.getDay()===0){let nx=new Date(d);do{nx.setDate(nx.getDate()+1);}while(result.has(isoOf(nx)));result.add(isoOf(nx));}});
+  // 国民の休日：前後を祝日に挟まれた平日（例 2026-09-22）を休日に
+  [...base].forEach(s=>{const d=parse(s);const mid=new Date(d);mid.setDate(mid.getDate()+1);const nx=new Date(d);nx.setDate(nx.getDate()+2);if(base.has(isoOf(nx))&&mid.getDay()!==0&&!result.has(isoOf(mid)))result.add(isoOf(mid));});
+  return result;
+}
+const _holCache={};
+function holsFor(y){ return _holCache[y] || (_holCache[y]=computeHolidays(y)); }
+function isHol(d){ const w=d.getDay(); return w===0||w===6||holsFor(d.getFullYear()).has(isoOf(d)); }
 
 function cellText(td){
   const inp = td.querySelector('input');
@@ -1307,6 +1353,47 @@ function renderTodayCard(){
   host.innerHTML = `<div class="today-card"><div class="today-label">📍 本日の担当イベント（${todays.length}件）</div>${eventsHtml}</div>`;
 }
 
+// 概観: 本日実施中で「本日ぶんの実績」が未入力のイベント一覧
+function missingTodayRows(){
+  const iso = isoOf(new Date());
+  const out = [];
+  [...document.querySelectorAll('#ledger tbody tr')].forEach((r,i)=>{
+    if(rowStatus(r.cells)[1] !== 'ongoing') return;
+    const dd = dailyData[String(i)];
+    const v = dd && dd[iso] ? dd[iso].p1 : undefined;
+    const entered = v!==undefined && v!==null && v!=='';
+    if(!entered) out.push({r,i});
+  });
+  return out;
+}
+function renderMissingBanner(){
+  const host = document.getElementById('missingBanner');
+  if(!host) return;
+  const ongoing = [...document.querySelectorAll('#ledger tbody tr')].filter(r=>rowStatus(r.cells)[1]==='ongoing').length;
+  if(ongoing===0){ host.innerHTML=''; return; }
+  const miss = missingTodayRows();
+  if(!miss.length){
+    host.innerHTML = `<div class="miss-banner ok"><span class="mb-text">✅ 本日実施中 ${ongoing}件 — 実績はすべて入力済みです</span></div>`;
+    return;
+  }
+  host.innerHTML = `<div class="miss-banner"><span class="mb-text">📝 本日ぶん未入力 ${miss.length}件（実施中 ${ongoing}件中）</span><button onclick="jumpToMissing()">未入力の行へ ▶</button></div>`;
+}
+function jumpToMissing(){
+  const miss = missingTodayRows();
+  if(!miss.length){ showToast('本日ぶんは全て入力済みです','ok'); return; }
+  switchTab('ledger');
+  // フィルタを解除して対象行を確実に表示
+  fWeek.value=''; fBranch.value=''; fStatus.value=''; fDirector.value='';
+  applyFilter();
+  const target = miss[0].r;
+  setTimeout(()=>{
+    target.scrollIntoView({behavior:'smooth', block:'center'});
+    document.querySelectorAll('#ledger tr.flash-row').forEach(r=>r.classList.remove('flash-row'));
+    miss.forEach(m=>{ void m.r.offsetHeight; m.r.classList.add('flash-row'); });
+    setTimeout(()=>miss.forEach(m=>m.r.classList.remove('flash-row')), 1800);
+  }, 60);
+}
+
 // 概観: 週別 目標vs実績のミニ棒グラフ
 function updateWeekChart(rows){
   const el = document.getElementById('ovWeekChart');
@@ -1377,6 +1464,7 @@ function updateAll(){
       paceNg?`<span class="pace-chip ng">遅れ ${paceNg}</span>`:'' ].filter(Boolean).join('');
   updateWeekChart(rows);
   renderTodayCard();
+  renderMissingBanner();
   sumTarget.textContent = sumT.toLocaleString();
   sumPi1.textContent = s1.toLocaleString();
   sumPi2.textContent = s2.toLocaleString();
@@ -1835,8 +1923,14 @@ function saveAll(){
   saveTimer = setTimeout(()=>{
     const state = collectState();
     try{ localStorage.setItem(lsKeyFor(currentMonthKey), JSON.stringify(state));
-      showToast('自動保存済 '+new Date().toLocaleTimeString(), 'ok');
-    }catch(e){}
+      const t = new Date().toLocaleTimeString();
+      showToast('自動保存済 '+t, 'ok');
+      const ls = document.getElementById('lastSavedMsg');
+      if(ls) ls.textContent = '最終保存 '+t;
+    }catch(e){
+      const ls = document.getElementById('lastSavedMsg');
+      if(ls){ ls.textContent = '⚠ 保存失敗（容量超過の可能性）'; ls.style.color = '#c0392b'; }
+    }
     if(window.__fb && window.__fb.enabled){
       const changes = diffStates(lastKnownState, state);
       if(changes.length){
@@ -1899,6 +1993,17 @@ window.addEventListener('fb-ready', ()=>{
     first = false;
   });
 });
+
+// ===== オンライン/オフライン検知 =====
+function updateNetStatus(){
+  const off = !navigator.onLine;
+  const nm = document.getElementById('netMsg');
+  if(nm) nm.textContent = off ? '⚠ オフライン（編集はこの端末に保存・オンライン復帰で自動同期）' : '';
+  document.body.classList.toggle('offline', off);
+}
+window.addEventListener('online', ()=>{ updateNetStatus(); showToast('オンラインに復帰しました。共有を再開します', 'ok'); });
+window.addEventListener('offline', ()=>{ updateNetStatus(); showToast('オフラインです。編集はこの端末に保存されます', 'info'); });
+updateNetStatus();
 
 // ===== 変更履歴 / Undo =====
 let historyList = [];
