@@ -12,6 +12,7 @@ function promptEditorName(){
   const name = prompt('お名前を入力してください（変更履歴に記録されます）', cur==='不明'?'':cur);
   if(name){ try{ localStorage.setItem(EDITOR_NAME_KEY, name); }catch(e){} }
   updateEditorNameLabel();
+  refreshEntryCells();
 }
 function updateEditorNameLabel(){
   const el = document.getElementById('editorNameLabel');
@@ -82,6 +83,7 @@ function applyLockState(unlocked){
   editUnlocked = unlocked;
   document.body.classList.toggle('view-only', !unlocked);
   document.querySelectorAll('.editable-cell').forEach(td=>{ td.contentEditable = unlocked; });
+  document.querySelectorAll('.entry-cell').forEach(td=>{ td.contentEditable = isEntryUnlocked(); });
   document.querySelectorAll('.editable-input').forEach(inp=>{ inp.disabled = !unlocked; });
   // addClaimBtnは対象外: クレームは誰でも記録できる運用
   [evMinus, evBilling, evAladinCard, evAladinHikari, addRowBtn, resetBtn, addContactBtn, targetBulkBtn].forEach(el=>{ if(el) el.disabled = !unlocked; });
@@ -89,6 +91,7 @@ function applyLockState(unlocked){
   lockBtn.textContent = unlocked ? '編集を終了（閲覧のみに戻す）' : '編集する';
   lockBtn.className = 'lockbtn ' + (unlocked ? 'unlocked' : 'locked');
   updateEditorNameLabel();
+  refreshEntryCells();
 }
 async function onLockBtn(){
   if(editUnlocked){ applyLockState(false); try{ localStorage.removeItem(EDIT_UNLOCK_KEY); }catch(e){} return; }
@@ -102,6 +105,26 @@ async function onLockBtn(){
   }else{
     alert('パスワードが違います');
   }
+}
+
+// ===== 実績入力ロック =====
+// 台帳の計画列や行の増減はパスワード（editUnlocked）のまま。
+// 一方、日々の実績入力は現場が毎日使うので、お名前の登録だけで解除する。
+// 誰が入れたかは変更履歴に残るので、追跡はできる。
+function hasEditorName(){ return getEditorName() !== '不明'; }
+function isEntryUnlocked(){ return editUnlocked || hasEditorName(); }
+// 名前が未登録なら1回だけ聞く。登録されれば true。
+function ensureEditorName(){
+  if(hasEditorName()) return true;
+  promptEditorName();
+  return hasEditorName();
+}
+function refreshEntryCells(){
+  document.querySelectorAll('.entry-cell').forEach(td=>{ td.contentEditable = isEntryUnlocked(); });
+  const msg = document.getElementById('ezLockMsg');
+  if(msg) msg.style.display = isEntryUnlocked() ? 'none' : 'block';
+  const btn = document.getElementById('ezSaveBtn');
+  if(btn) btn.disabled = !isEntryUnlocked();
 }
 function initLockState(){
   let saved = null;
@@ -204,8 +227,10 @@ function addRow(data){
       inp.oninput = ()=>{updateAll();saveAll();};
       td.appendChild(inp);
     }else{
-      td.contentEditable = isEditUnlocked();
-      td.classList.add('editable-cell');
+      // 実績列(23-28)は entry-cell。お名前の登録だけで書けるようにするため editable-cell と分ける
+      const isEntry = ACTUAL_COLS.includes(i);
+      td.contentEditable = isEntry ? isEntryUnlocked() : isEditUnlocked();
+      td.classList.add(isEntry ? 'entry-cell' : 'editable-cell');
       if(NUM_PLAN.includes(i) || ACTUAL_COLS.includes(i)) td.className += ' num';
       td.oninput = ()=>{updateAll();saveAll();};
       if(data && data[i-1] !== undefined) td.textContent = data[i-1];

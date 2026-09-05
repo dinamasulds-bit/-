@@ -6,6 +6,13 @@ function todayIso(){
 function openEasy(presetIdx){
   const rows = [...document.querySelectorAll('#ledger tbody tr')];
   if(!rows.length) return;
+  // 初回だけ名前を聞く。2回目以降は端末に記憶されているので何も聞かない
+  ensureEditorName();
+  // 施設を指定されなかったときは、本日実施中のイベントを自動で選ぶ（選択の手間をなくす）
+  if(presetIdx==null){
+    const ongoing = rows.findIndex(r=>rowStatus(r.cells)[1]==='ongoing');
+    if(ongoing >= 0) presetIdx = ongoing;
+  }
   const order = {'実施中':0,'開催前':1,'終了':2,'':3};
   const opts = rows.map((r,i)=>({i, label:`${r.cells[STATUS_COL].textContent||''} ${r.cells[5].textContent}（${r.cells[1].textContent} 項番${r.cells[2].textContent}）`, st:r.cells[STATUS_COL].textContent}))
     .sort((a,b)=>(order[a.st]??9)-(order[b.st]??9));
@@ -13,8 +20,8 @@ function openEasy(presetIdx){
   if(presetIdx!=null && rows[presetIdx]) ezFacility.value = String(presetIdx);
   ezDate.value = todayIso();
   onEzFacilityChange();
-  ezLockMsg.style.display = isEditUnlocked() ? 'none' : 'block';
-  ezSaveBtn.disabled = !isEditUnlocked();
+  ezLockMsg.style.display = isEntryUnlocked() ? 'none' : 'block';
+  ezSaveBtn.disabled = !isEntryUnlocked();
   easyModal.style.display = 'flex';
 }
 function closeEasy(){ easyModal.style.display = 'none'; }
@@ -46,9 +53,9 @@ function renderEzFields(){
         <div class="sub" style="margin:0;">${progress}</div>
       </div>
       <div class="ez-stepper-controls">
-        <button class="sec ez-step-btn" type="button" onclick="ezStep('${f.key}',-1)" ${isEditUnlocked()?'':'disabled'}>−</button>
-        <input type="number" inputmode="numeric" pattern="[0-9]*" min="0" class="ez-input" id="ez-${f.key}" value="${vals[f.key]??''}" ${isEditUnlocked()?'':'disabled'}>
-        <button class="ez-step-btn" type="button" onclick="ezStep('${f.key}',1)" ${isEditUnlocked()?'':'disabled'}>＋</button>
+        <button class="sec ez-step-btn" type="button" onclick="ezStep('${f.key}',-1)" ${isEntryUnlocked()?'':'disabled'}>−</button>
+        <input type="number" inputmode="numeric" pattern="[0-9]*" min="0" class="ez-input" id="ez-${f.key}" value="${vals[f.key]??''}" ${isEntryUnlocked()?'':'disabled'}>
+        <button class="ez-step-btn" type="button" onclick="ezStep('${f.key}',1)" ${isEntryUnlocked()?'':'disabled'}>＋</button>
       </div>
     </div>`;
   }).join('');
@@ -66,7 +73,7 @@ function ezStep(key, delta){
   el.value = Math.max(0, (Number(el.value)||0) + delta);
 }
 function saveEasyInput(){
-  if(!isEditUnlocked()){ alert('編集ロック解除中のみ保存できます'); return; }
+  if(!isEntryUnlocked() && !ensureEditorName()){ alert('お名前を登録すると保存できます'); return; }
   const rowIdx = Number(ezFacility.value);
   const iso = ezDate.value;
   if(!iso){ alert('日付を選んでください'); return; }

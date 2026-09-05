@@ -35,26 +35,46 @@ function initFontSize(){
   applyFontSize(saved==='1');
 }
 
-// ===== 現場モード（現場スタッフ向けに台帳/評価サマリ/集計タブを隠す） =====
-const FIELD_MODE_KEY = 'event-ledger-field-mode';
-function applyFieldMode(on){
-  document.body.classList.toggle('field-mode', on);
-  const b = document.getElementById('fieldModeBtn');
-  if(b) b.classList.toggle('on', on);
-  if(on){
+// ===== ロール（現場スタッフ / 管理者） =====
+// 現場は「今日の実績を入れる」ことしかしないのに全タブが同じ重さで並んでいると迷う。
+// 初回だけ立場を選んでもらい、以降は端末に記憶して画面構成を変える。
+const ROLE_KEY = 'event-ledger-role';
+const LEGACY_FIELD_MODE_KEY = 'event-ledger-field-mode';   // 旧「現場モード」からの引き継ぎ用
+const ROLE_LABEL = {field:'🚗 現場スタッフ', admin:'🗂 管理者'};
+let currentRole = 'admin';
+function applyRole(role){
+  currentRole = (role==='field') ? 'field' : 'admin';
+  const isField = currentRole==='field';
+  document.body.classList.toggle('field-mode', isField);
+  const b = document.getElementById('roleBtn');
+  if(b){ b.textContent = ROLE_LABEL[currentRole]; b.classList.toggle('on', isField); }
+  if(isField){
     const activeBtn = document.querySelector('.tab-btn.active');
     if(activeBtn && activeBtn.dataset.fieldHide) switchTab('overview');
   }
 }
-function toggleFieldMode(){
-  const on = !document.body.classList.contains('field-mode');
-  applyFieldMode(on);
-  try{ localStorage.setItem(FIELD_MODE_KEY, on?'1':'0'); }catch(e){}
+function setRole(role){
+  applyRole(role);
+  try{ localStorage.setItem(ROLE_KEY, currentRole); }catch(e){}
 }
-function initFieldMode(){
-  let saved = null;
-  try{ saved = localStorage.getItem(FIELD_MODE_KEY); }catch(e){}
-  applyFieldMode(saved==='1');
+function openRolePicker(){
+  const m = document.getElementById('roleModal');
+  if(m) m.style.display = 'flex';
+}
+function chooseRole(role){
+  setRole(role);
+  const m = document.getElementById('roleModal');
+  if(m) m.style.display = 'none';
+  // 現場は開いてすぐ入力できる状態にしたいので、ここで名前を1回だけ聞く
+  if(role==='field') ensureEditorName();
+}
+function initRole(){
+  let saved = null, legacy = null;
+  try{ saved = localStorage.getItem(ROLE_KEY); legacy = localStorage.getItem(LEGACY_FIELD_MODE_KEY); }catch(e){}
+  if(saved==='field' || saved==='admin'){ applyRole(saved); return; }
+  if(legacy !== null){ setRole(legacy==='1' ? 'field' : 'admin'); return; }
+  applyRole('admin');
+  openRolePicker();   // 初回だけ聞く
 }
 
 // ===== タブ切替 =====

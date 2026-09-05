@@ -24,7 +24,7 @@ function openDaily(rowIdx){
     const vals = dailyData[key][iso] || {};
     html += `<tr${hol?' class="hol"':''}><td${hol?' class="hol"':''}>${d.getMonth()+1}/${d.getDate()}</td><td${hol?' class="hol"':''}>${wdays[d.getDay()]}</td><td class="num${hol?' hol':''}">${tgt}</td>`;
     DAY_FIELDS.forEach(f=>{
-      html += `<td${hol?' class="hol"':''}><input type="number" min="0" value="${vals[f.key]??''}" oninput="dayInput('${iso}','${f.key}',this.value)"${isEditUnlocked()?'':' disabled'}></td>`;
+      html += `<td${hol?' class="hol"':''}><input type="number" min="0" value="${vals[f.key]??''}" oninput="dayInput('${iso}','${f.key}',this.value)"${isEntryUnlocked()?'':' disabled'}></td>`;
     });
     html += `<td class="num${hol?' hol':''}" id="dayAch-${iso}"></td></tr>`;
   }

@@ -124,7 +124,13 @@
 
   /* 現場モード: 台帳/評価サマリ/集計タブを隠して迷わないように */
   body.field-mode .tab-btn[data-field-hide]{display:none;}
-  #fieldModeBtn.on{background:var(--navy2);color:#fff;}
+  #roleBtn.on{background:var(--navy2);color:#fff;}
+  .role-pick{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;text-align:left;
+    margin-top:10px;padding:13px 15px;}
+  .role-pick .role-pick-title{font-size:15px;font-weight:800;}
+  .role-pick .role-pick-note{font-size:11.5px;font-weight:600;opacity:.85;line-height:1.55;white-space:normal;}
+  /* 実績列は「お名前の登録」だけで書ける。パスワードが要る計画列と色で見分けられるようにする */
+  body.view-only td.entry-cell[contenteditable="true"]{background:#fffdf2;cursor:text;}
 
   /* トースト通知 */
   .toast-host{position:fixed;right:18px;bottom:18px;z-index:300;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none;}
@@ -339,6 +345,7 @@
     .st-chip.ongoing{background:#3a3320;color:#e6c04d;}
     a.contact-link{color:#7fb3ef;}
     body.view-only td[contenteditable]{background:#1a1f2b;}
+    body.view-only td.entry-cell[contenteditable="true"]{background:#2c2a1d;}
     body.view-only #claimsTable td[contenteditable]{background:transparent;}
   }
   body.view-only input.dir{cursor:default;}

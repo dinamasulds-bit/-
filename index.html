@@ -137,7 +137,13 @@
 
   /* 現場モード: 台帳/評価サマリ/集計タブを隠して迷わないように */
   body.field-mode .tab-btn[data-field-hide]{display:none;}
-  #fieldModeBtn.on{background:var(--navy2);color:#fff;}
+  #roleBtn.on{background:var(--navy2);color:#fff;}
+  .role-pick{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;text-align:left;
+    margin-top:10px;padding:13px 15px;}
+  .role-pick .role-pick-title{font-size:15px;font-weight:800;}
+  .role-pick .role-pick-note{font-size:11.5px;font-weight:600;opacity:.85;line-height:1.55;white-space:normal;}
+  /* 実績列は「お名前の登録」だけで書ける。パスワードが要る計画列と色で見分けられるようにする */
+  body.view-only td.entry-cell[contenteditable="true"]{background:#fffdf2;cursor:text;}
 
   /* トースト通知 */
   .toast-host{position:fixed;right:18px;bottom:18px;z-index:300;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none;}
@@ -352,6 +358,7 @@
     .st-chip.ongoing{background:#3a3320;color:#e6c04d;}
     a.contact-link{color:#7fb3ef;}
     body.view-only td[contenteditable]{background:#1a1f2b;}
+    body.view-only td.entry-cell[contenteditable="true"]{background:#2c2a1d;}
     body.view-only #claimsTable td[contenteditable]{background:transparent;}
   }
   body.view-only input.dir{cursor:default;}
@@ -388,7 +395,7 @@
     <h1>首都圏支社イベント実績管理簿（<span id="monthTitleText">2026年7月</span>）</h1>
     <div style="display:flex;gap:8px;align-items:center;">
       <select id="monthSelect" onchange="switchMonth(this.value)" style="font-weight:700;"></select>
-      <button class="sec mini-btn" id="fieldModeBtn" onclick="toggleFieldMode()">🚗 現場モード</button>
+      <button class="sec mini-btn" id="roleBtn" onclick="openRolePicker()">🗂 管理者</button>
       <button class="sec mini-btn" id="fontBtn" onclick="toggleFontSize()">文字サイズ 大</button>
     </div>
   </div>
@@ -721,7 +728,7 @@
   <div class="modal" style="width:min(420px,92vw);">
     <div class="modal-head"><b>かんたん入力</b><button class="sec" onclick="closeEasy()">閉じる</button></div>
     <div class="sub">施設と日付を選んで数字をポン。保存すると即反映されます。</div>
-    <div id="ezLockMsg" class="verdict ng" style="display:none;">編集ロック解除中のみ入力できます。ツールバーの「編集する」から解除してください。</div>
+    <div id="ezLockMsg" class="verdict ng" style="display:none;">お名前を登録すると入力できます（パスワードは不要です）。<button class="sec mini-btn" style="margin-left:6px;" onclick="ensureEditorName()">お名前を登録</button></div>
     <div class="ez-field">
       <label>施設（実施中を優先表示）</label>
       <select id="ezFacility" onchange="onEzFacilityChange()"></select>
@@ -769,6 +776,21 @@
     <div class="modal-head"><b>変更履歴（直近40件・共有）</b><button class="sec" onclick="closeHistory()">閉じる</button></div>
     <div class="sub">「この内容に戻す」は編集ロック解除中のみ操作可。復元も履歴に記録される。</div>
     <div id="historyBody" style="max-height:70vh;overflow:auto;"></div>
+  </div>
+</div>
+
+<div id="roleModal" class="modal-bg" style="display:none">
+  <div class="modal" style="width:min(420px,92vw);">
+    <div class="modal-head"><b>どちらの立場で使いますか？</b></div>
+    <div class="sub">あとからヘッダーのボタンでいつでも切替えられます。</div>
+    <button class="role-pick" onclick="chooseRole('field')">
+      <span class="role-pick-title">🚗 現場スタッフ</span>
+      <span class="role-pick-note">今日の実績入力・クレーム記録・連絡先の確認だけ。台帳・評価サマリ・集計は隠します。</span>
+    </button>
+    <button class="role-pick sec" onclick="chooseRole('admin')">
+      <span class="role-pick-title">🗂 管理者</span>
+      <span class="role-pick-note">台帳・評価サマリ・集計を含む、すべての画面を表示します。</span>
+    </button>
   </div>
 </div>
 <script>
@@ -1140,6 +1162,7 @@ function promptEditorName(){
   const name = prompt('お名前を入力してください（変更履歴に記録されます）', cur==='不明'?'':cur);
   if(name){ try{ localStorage.setItem(EDITOR_NAME_KEY, name); }catch(e){} }
   updateEditorNameLabel();
+  refreshEntryCells();
 }
 function updateEditorNameLabel(){
   const el = document.getElementById('editorNameLabel');
@@ -1210,6 +1233,7 @@ function applyLockState(unlocked){
   editUnlocked = unlocked;
   document.body.classList.toggle('view-only', !unlocked);
   document.querySelectorAll('.editable-cell').forEach(td=>{ td.contentEditable = unlocked; });
+  document.querySelectorAll('.entry-cell').forEach(td=>{ td.contentEditable = isEntryUnlocked(); });
   document.querySelectorAll('.editable-input').forEach(inp=>{ inp.disabled = !unlocked; });
   // addClaimBtnは対象外: クレームは誰でも記録できる運用
   [evMinus, evBilling, evAladinCard, evAladinHikari, addRowBtn, resetBtn, addContactBtn, targetBulkBtn].forEach(el=>{ if(el) el.disabled = !unlocked; });
@@ -1217,6 +1241,7 @@ function applyLockState(unlocked){
   lockBtn.textContent = unlocked ? '編集を終了（閲覧のみに戻す）' : '編集する';
   lockBtn.className = 'lockbtn ' + (unlocked ? 'unlocked' : 'locked');
   updateEditorNameLabel();
+  refreshEntryCells();
 }
 async function onLockBtn(){
   if(editUnlocked){ applyLockState(false); try{ localStorage.removeItem(EDIT_UNLOCK_KEY); }catch(e){} return; }
@@ -1230,6 +1255,26 @@ async function onLockBtn(){
   }else{
     alert('パスワードが違います');
   }
+}
+
+// ===== 実績入力ロック =====
+// 台帳の計画列や行の増減はパスワード（editUnlocked）のまま。
+// 一方、日々の実績入力は現場が毎日使うので、お名前の登録だけで解除する。
+// 誰が入れたかは変更履歴に残るので、追跡はできる。
+function hasEditorName(){ return getEditorName() !== '不明'; }
+function isEntryUnlocked(){ return editUnlocked || hasEditorName(); }
+// 名前が未登録なら1回だけ聞く。登録されれば true。
+function ensureEditorName(){
+  if(hasEditorName()) return true;
+  promptEditorName();
+  return hasEditorName();
+}
+function refreshEntryCells(){
+  document.querySelectorAll('.entry-cell').forEach(td=>{ td.contentEditable = isEntryUnlocked(); });
+  const msg = document.getElementById('ezLockMsg');
+  if(msg) msg.style.display = isEntryUnlocked() ? 'none' : 'block';
+  const btn = document.getElementById('ezSaveBtn');
+  if(btn) btn.disabled = !isEntryUnlocked();
 }
 function initLockState(){
   let saved = null;
@@ -1332,8 +1377,10 @@ function addRow(data){
       inp.oninput = ()=>{updateAll();saveAll();};
       td.appendChild(inp);
     }else{
-      td.contentEditable = isEditUnlocked();
-      td.classList.add('editable-cell');
+      // 実績列(23-28)は entry-cell。お名前の登録だけで書けるようにするため editable-cell と分ける
+      const isEntry = ACTUAL_COLS.includes(i);
+      td.contentEditable = isEntry ? isEntryUnlocked() : isEditUnlocked();
+      td.classList.add(isEntry ? 'entry-cell' : 'editable-cell');
       if(NUM_PLAN.includes(i) || ACTUAL_COLS.includes(i)) td.className += ' num';
       td.oninput = ()=>{updateAll();saveAll();};
       if(data && data[i-1] !== undefined) td.textContent = data[i-1];
@@ -2171,26 +2218,46 @@ function initFontSize(){
   applyFontSize(saved==='1');
 }
 
-// ===== 現場モード（現場スタッフ向けに台帳/評価サマリ/集計タブを隠す） =====
-const FIELD_MODE_KEY = 'event-ledger-field-mode';
-function applyFieldMode(on){
-  document.body.classList.toggle('field-mode', on);
-  const b = document.getElementById('fieldModeBtn');
-  if(b) b.classList.toggle('on', on);
-  if(on){
+// ===== ロール（現場スタッフ / 管理者） =====
+// 現場は「今日の実績を入れる」ことしかしないのに全タブが同じ重さで並んでいると迷う。
+// 初回だけ立場を選んでもらい、以降は端末に記憶して画面構成を変える。
+const ROLE_KEY = 'event-ledger-role';
+const LEGACY_FIELD_MODE_KEY = 'event-ledger-field-mode';   // 旧「現場モード」からの引き継ぎ用
+const ROLE_LABEL = {field:'🚗 現場スタッフ', admin:'🗂 管理者'};
+let currentRole = 'admin';
+function applyRole(role){
+  currentRole = (role==='field') ? 'field' : 'admin';
+  const isField = currentRole==='field';
+  document.body.classList.toggle('field-mode', isField);
+  const b = document.getElementById('roleBtn');
+  if(b){ b.textContent = ROLE_LABEL[currentRole]; b.classList.toggle('on', isField); }
+  if(isField){
     const activeBtn = document.querySelector('.tab-btn.active');
     if(activeBtn && activeBtn.dataset.fieldHide) switchTab('overview');
   }
 }
-function toggleFieldMode(){
-  const on = !document.body.classList.contains('field-mode');
-  applyFieldMode(on);
-  try{ localStorage.setItem(FIELD_MODE_KEY, on?'1':'0'); }catch(e){}
+function setRole(role){
+  applyRole(role);
+  try{ localStorage.setItem(ROLE_KEY, currentRole); }catch(e){}
 }
-function initFieldMode(){
-  let saved = null;
-  try{ saved = localStorage.getItem(FIELD_MODE_KEY); }catch(e){}
-  applyFieldMode(saved==='1');
+function openRolePicker(){
+  const m = document.getElementById('roleModal');
+  if(m) m.style.display = 'flex';
+}
+function chooseRole(role){
+  setRole(role);
+  const m = document.getElementById('roleModal');
+  if(m) m.style.display = 'none';
+  // 現場は開いてすぐ入力できる状態にしたいので、ここで名前を1回だけ聞く
+  if(role==='field') ensureEditorName();
+}
+function initRole(){
+  let saved = null, legacy = null;
+  try{ saved = localStorage.getItem(ROLE_KEY); legacy = localStorage.getItem(LEGACY_FIELD_MODE_KEY); }catch(e){}
+  if(saved==='field' || saved==='admin'){ applyRole(saved); return; }
+  if(legacy !== null){ setRole(legacy==='1' ? 'field' : 'admin'); return; }
+  applyRole('admin');
+  openRolePicker();   // 初回だけ聞く
 }
 
 // ===== タブ切替 =====
@@ -2245,7 +2312,7 @@ function openDaily(rowIdx){
     const vals = dailyData[key][iso] || {};
     html += `<tr${hol?' class="hol"':''}><td${hol?' class="hol"':''}>${d.getMonth()+1}/${d.getDate()}</td><td${hol?' class="hol"':''}>${wdays[d.getDay()]}</td><td class="num${hol?' hol':''}">${tgt}</td>`;
     DAY_FIELDS.forEach(f=>{
-      html += `<td${hol?' class="hol"':''}><input type="number" min="0" value="${vals[f.key]??''}" oninput="dayInput('${iso}','${f.key}',this.value)"${isEditUnlocked()?'':' disabled'}></td>`;
+      html += `<td${hol?' class="hol"':''}><input type="number" min="0" value="${vals[f.key]??''}" oninput="dayInput('${iso}','${f.key}',this.value)"${isEntryUnlocked()?'':' disabled'}></td>`;
     });
     html += `<td class="num${hol?' hol':''}" id="dayAch-${iso}"></td></tr>`;
   }
@@ -2371,6 +2438,13 @@ function todayIso(){
 function openEasy(presetIdx){
   const rows = [...document.querySelectorAll('#ledger tbody tr')];
   if(!rows.length) return;
+  // 初回だけ名前を聞く。2回目以降は端末に記憶されているので何も聞かない
+  ensureEditorName();
+  // 施設を指定されなかったときは、本日実施中のイベントを自動で選ぶ（選択の手間をなくす）
+  if(presetIdx==null){
+    const ongoing = rows.findIndex(r=>rowStatus(r.cells)[1]==='ongoing');
+    if(ongoing >= 0) presetIdx = ongoing;
+  }
   const order = {'実施中':0,'開催前':1,'終了':2,'':3};
   const opts = rows.map((r,i)=>({i, label:`${r.cells[STATUS_COL].textContent||''} ${r.cells[5].textContent}（${r.cells[1].textContent} 項番${r.cells[2].textContent}）`, st:r.cells[STATUS_COL].textContent}))
     .sort((a,b)=>(order[a.st]??9)-(order[b.st]??9));
@@ -2378,8 +2452,8 @@ function openEasy(presetIdx){
   if(presetIdx!=null && rows[presetIdx]) ezFacility.value = String(presetIdx);
   ezDate.value = todayIso();
   onEzFacilityChange();
-  ezLockMsg.style.display = isEditUnlocked() ? 'none' : 'block';
-  ezSaveBtn.disabled = !isEditUnlocked();
+  ezLockMsg.style.display = isEntryUnlocked() ? 'none' : 'block';
+  ezSaveBtn.disabled = !isEntryUnlocked();
   easyModal.style.display = 'flex';
 }
 function closeEasy(){ easyModal.style.display = 'none'; }
@@ -2411,9 +2485,9 @@ function renderEzFields(){
         <div class="sub" style="margin:0;">${progress}</div>
       </div>
       <div class="ez-stepper-controls">
-        <button class="sec ez-step-btn" type="button" onclick="ezStep('${f.key}',-1)" ${isEditUnlocked()?'':'disabled'}>−</button>
-        <input type="number" inputmode="numeric" pattern="[0-9]*" min="0" class="ez-input" id="ez-${f.key}" value="${vals[f.key]??''}" ${isEditUnlocked()?'':'disabled'}>
-        <button class="ez-step-btn" type="button" onclick="ezStep('${f.key}',1)" ${isEditUnlocked()?'':'disabled'}>＋</button>
+        <button class="sec ez-step-btn" type="button" onclick="ezStep('${f.key}',-1)" ${isEntryUnlocked()?'':'disabled'}>−</button>
+        <input type="number" inputmode="numeric" pattern="[0-9]*" min="0" class="ez-input" id="ez-${f.key}" value="${vals[f.key]??''}" ${isEntryUnlocked()?'':'disabled'}>
+        <button class="ez-step-btn" type="button" onclick="ezStep('${f.key}',1)" ${isEntryUnlocked()?'':'disabled'}>＋</button>
       </div>
     </div>`;
   }).join('');
@@ -2431,7 +2505,7 @@ function ezStep(key, delta){
   el.value = Math.max(0, (Number(el.value)||0) + delta);
 }
 function saveEasyInput(){
-  if(!isEditUnlocked()){ alert('編集ロック解除中のみ保存できます'); return; }
+  if(!isEntryUnlocked() && !ensureEditorName()){ alert('お名前を登録すると保存できます'); return; }
   const rowIdx = Number(ezFacility.value);
   const iso = ezDate.value;
   if(!iso){ alert('日付を選んでください'); return; }
@@ -2736,7 +2810,7 @@ initSortHeaders();
 initSimpleView();
 initTab();
 initFontSize();
-initFieldMode();
+initRole();
 initMonthSelect();
 updateMonthTitle();
 initWeekBranchFilters();

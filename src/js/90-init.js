@@ -41,7 +41,7 @@ initSortHeaders();
 initSimpleView();
 initTab();
 initFontSize();
-initFieldMode();
+initRole();
 initMonthSelect();
 updateMonthTitle();
 initWeekBranchFilters();
