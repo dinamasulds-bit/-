@@ -85,6 +85,16 @@
   .wk-card .bar span{line-height:20px;font-size:11px;}
   .wk-meta{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--muted);font-weight:600;}
   .wk-meta .ng{color:var(--ng);} .wk-meta .ok{color:var(--ok);}
+  .pace-tag{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;background:#eef1f6;color:var(--muted);}
+  .pace-tag.ok{background:var(--ok-bg);color:var(--ok);} .pace-tag.ng{background:var(--ng-bg);color:var(--ng);}
+  .trend-box{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;box-shadow:var(--shadow);}
+  .trend-box svg{width:100%;height:auto;display:block;}
+  .trend-legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;font-size:11px;font-weight:700;color:var(--muted);}
+  .trend-legend span{display:inline-flex;align-items:center;gap:5px;}
+  .trend-legend i{width:16px;height:3px;border-radius:2px;display:inline-block;}
+  .trend-grid{stroke:#dfe5ee;stroke-width:1;}
+  .trend-axis{fill:#7b8595;font-size:10px;}
+  .trend-today{stroke:#d9584a;stroke-width:1;stroke-dasharray:3 3;}
   tr.dir-row{cursor:pointer;}
   tr.dir-row .dir-toggle{display:inline-block;width:13px;color:var(--muted);font-size:10px;}
   tr.dir-detail>td{padding:0 !important;background:#f5f8fc;}
@@ -324,6 +334,8 @@
     .modal td.sum{background:#22301f;}
     .modal td.hol{background:#3a2626;}
     .verdict{background:#242b3a;}
+    .trend-grid{stroke:#333c4e;}
+    .trend-axis{fill:#8b95a6;}
     .wk-main{color:#dce6f2;}
     tr.dir-detail>td{background:#1f2634;}
     tr.dir-detail th{background:#273042;color:#c7d2e3;}
@@ -563,24 +575,35 @@
 </div><!-- /tab-eval -->
 
 <div class="tab-panel tab-hidden" id="tab-summary">
+<div class="toolbar">
+  <button class="sec" onclick="exportSummaryCsv()">集計CSV出力</button>
+</div>
+
 <h2>週別 目標・進捗</h2>
-<div class="sub">週ごとの目標台数と現時点の実績。大きい数字は「HS即日 ÷ 目標」。休日/日・平日/日は台帳の1日あたり目標の合計。</div>
+<div class="sub">週ごとの目標台数と現時点の実績。大きい数字は「HS即日 ÷ 目標」。「本日想定」は日次目標（休日/日・平日/日）を本日ぶんまで積み上げた台数で、終了したイベントは期間満了ぶんを計上。</div>
 <div id="weekCards" class="wk-grid"></div>
 
 <h2>週別サマリ</h2>
 <div class="wrap">
 <table class="mini" id="weekSummary">
-  <thead><tr><th>週</th><th>期間</th><th>件数</th><th>目標計</th><th>休日/日計</th><th>平日/日計</th><th>HS即日</th><th>HS予約</th><th>残り</th><th>達成率(即日)</th><th style="min-width:140px">進捗</th></tr></thead>
+  <thead><tr><th>週</th><th>期間</th><th>件数</th><th>目標計</th><th>休日/日計</th><th>平日/日計</th><th>HS即日</th><th>HS予約</th><th>残り</th><th>本日想定</th><th>ペース</th><th>達成率(即日)</th><th style="min-width:140px">進捗</th></tr></thead>
   <tbody></tbody>
   <tfoot></tfoot>
 </table>
 </div>
 
+<h2>日次推移（HS即日の累計）</h2>
+<div class="sub">日別入力タブに入っている実績だけを集計。灰色の破線は日次目標の累計（あるべきペース）。</div>
+<div class="toolbar">
+  <label>表示単位: <select id="trendMode" onchange="renderTrendChart(summaryRows())"><option value="all">全体</option><option value="week">週別</option><option value="director">ディレクター別</option></select></label>
+</div>
+<div class="trend-box" id="trendChart"></div>
+
 <h2>ディレクター別サマリ</h2>
 <div class="sub">行をクリックすると、そのディレクターの担当イベント明細が開きます。ディレクター名は台帳タブの「ディレクター」列に入力してください。</div>
 <div class="wrap">
 <table class="mini" id="directorSummary">
-  <thead><tr><th>ディレクター</th><th>件数</th><th>目標計</th><th>HS即日</th><th>HS予約</th><th>dカード</th><th>光+5G</th><th>残り</th><th>達成率(即日)</th><th style="min-width:140px">進捗</th></tr></thead>
+  <thead><tr><th>ディレクター</th><th>件数</th><th>目標計</th><th>HS即日</th><th>HS予約</th><th>dカード</th><th>光+5G</th><th>残り</th><th>本日想定</th><th>ペース</th><th>達成率(即日)</th><th style="min-width:140px">進捗</th></tr></thead>
   <tbody></tbody>
   <tfoot></tfoot>
 </table>
@@ -598,7 +621,7 @@
 <h2>支店別サマリ</h2>
 <div class="wrap">
 <table class="mini" id="branchSummary">
-  <thead><tr><th>支店</th><th>件数</th><th>目標計</th><th>HS即日</th><th>HS予約</th><th>残り</th><th>達成率(即日)</th><th style="min-width:140px">進捗</th></tr></thead>
+  <thead><tr><th>支店</th><th>件数</th><th>目標計</th><th>HS即日</th><th>HS予約</th><th>残り</th><th>本日想定</th><th>ペース</th><th>達成率(即日)</th><th style="min-width:140px">進捗</th></tr></thead>
   <tbody></tbody>
   <tfoot></tfoot>
 </table>
@@ -1359,26 +1382,59 @@ function barHtml(rate){
 function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // ===== 集計タブ =====
+// 本日時点で積み上がっているべき日次目標の累計。
+// 未開始=0、実施中=開始日〜本日、終了=期間満了ぶん。
+// 休日/日・平日/日が未入力の行は、目標値を経過日数で按分してフォールバックする。
+function expectedToDate(startText, endText, hol, wd, total){
+  const s = parseJpDate(startText), e = parseJpDate(endText);
+  if(!s || !e || s > e) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  if(today < s) return 0;
+  const last = today > e ? e : today;
+  let exp = 0, elapsed = 0, all = 0;
+  for(let d = new Date(s); d <= e; d.setDate(d.getDate()+1)){
+    all++;
+    const v = isHol(d) ? hol : wd;
+    if(d <= last){ exp += v; elapsed++; }
+  }
+  if(hol <= 0 && wd <= 0) return total > 0 && all > 0 ? total*elapsed/all : null;
+  return exp;
+}
+function paceInfo(p1, exp){
+  if(exp === null || exp <= 0) return {r:null, text:'-', cls:''};
+  const r = p1/exp*100;
+  return {r, text:(r>=100?'順調':r>=80?'やや遅れ':'遅れ')+' '+r.toFixed(0)+'%', cls:(r>=100?'ok':r<80?'ng':'')};
+}
+
 // 台帳の1行を集計しやすい素データに変換する
 function summaryRows(){
-  return [...document.querySelectorAll('#ledger tbody tr')].map(r=>{
+  return [...document.querySelectorAll('#ledger tbody tr')].map((r,idx)=>{
     const c = r.cells;
-    return {
+    const d = {
+      idx,
       week: cellText(c[1]).trim() || '(未設定)',
       branch: cellText(c[4]).trim() || '(未設定)',
       facility: cellText(c[5]).trim(),
       start: cellText(c[14]).trim(),
       end: cellText(c[15]).trim(),
       director: cellText(c[DIRECTOR_IDX]).trim() || '(未設定)',
-      t: n(c[TARGET_IDX]), hol: n(c[21]), wd: n(c[22]),
+      t: n(c[TARGET_IDX]), hol: n(c[HOL_IDX]), wd: n(c[WK_IDX]),
       p1: n(c[23]), p2: n(c[24]), card: n(c[26]), hk: n(c[27])+n(c[28]),
       pace: (c[PACE_COL].textContent||'').trim(),
-      status: rowStatus(c)[0]
+      status: rowStatus(c)[0],
+      daily: dailyData[String(idx)] || {}
     };
+    d.exp = expectedToDate(d.start, d.end, d.hol, d.wd, d.t);
+    return d;
   });
 }
-const newAgg = ()=>({cnt:0,t:0,hol:0,wd:0,p1:0,p2:0,card:0,hk:0,rows:[]});
-function addAgg(a,d){ a.cnt++; a.t+=d.t; a.hol+=d.hol; a.wd+=d.wd; a.p1+=d.p1; a.p2+=d.p2; a.card+=d.card; a.hk+=d.hk; a.rows.push(d); }
+const newAgg = ()=>({cnt:0,t:0,hol:0,wd:0,p1:0,p2:0,card:0,hk:0,exp:0,expOk:false,rows:[]});
+function addAgg(a,d){
+  a.cnt++; a.t+=d.t; a.hol+=d.hol; a.wd+=d.wd; a.p1+=d.p1; a.p2+=d.p2; a.card+=d.card; a.hk+=d.hk;
+  if(d.exp!==null && d.exp!==undefined){ a.exp+=d.exp; a.expOk = true; }
+  a.rows.push(d);
+}
+function aggExp(a){ return a.expOk ? a.exp : null; }
 function aggBy(data, key){
   const g = {};
   data.forEach(d=>{ const k=d[key]; (g[k] = g[k] || newAgg()); addAgg(g[k], d); });
@@ -1393,6 +1449,12 @@ function weekSort(a,b){
 function restText(v){ const rest=v.t-v.p1; return v.t<=0 ? '-' : rest<=0 ? '達成' : rest.toLocaleString(); }
 function restCls(v){ return v.t<=0 ? '' : (v.t-v.p1)<=0 ? 'ok' : 'ng'; }
 function rateCls(r){ return r===null ? '' : r>=100 ? 'ok' : 'ng'; }
+// 「本日想定」「ペース」の2セル（週別・ディレクター別・支店別で共通）
+function paceCells(v){
+  const exp = aggExp(v), p = paceInfo(v.p1, exp);
+  return `<td class="num">${exp===null?'-':Math.round(exp).toLocaleString()}</td>`+
+    `<td class="num ${p.cls}"><b>${p.text}</b></td>`;
+}
 // グループ内の最早開始日〜最遅終了日
 function periodText(v){
   const ds = v.rows.map(d=>({s:parseJpDate(d.start), e:parseJpDate(d.end), d})).filter(x=>x.s&&x.e);
@@ -1410,12 +1472,15 @@ function renderWeekCards(data){
   if(!weeks.length){ el.innerHTML = '<span class="sub" style="margin:0;">データなし</span>'; return; }
   const card = (name, v, cls)=>{
     const r = pct(v.p1, v.t), rest = v.t - v.p1;
+    const exp = aggExp(v), p = paceInfo(v.p1, exp);
     return `<div class="wk-card ${cls||''}">`+
       `<div class="wk-head"><span class="wk-name">${esc(name)}</span><span class="wk-range">${esc(periodText(v))}</span></div>`+
       `<div class="wk-main ${rateCls(r)}">${v.p1.toLocaleString()} <small>/ 目標 ${v.t.toLocaleString()}</small></div>`+
       barHtml(r)+
       `<div class="wk-meta"><span>${v.cnt}件</span>`+
       `<span class="${v.t<=0?'':rest>0?'ng':'ok'}">${v.t<=0?'目標未入力':rest>0?'あと'+rest.toLocaleString()+'台':'目標達成'}</span></div>`+
+      `<div class="wk-meta"><span>本日想定 ${exp===null?'-':Math.round(exp).toLocaleString()}</span>`+
+      `<span class="pace-tag ${p.cls}">${p.text}</span></div>`+
       `<div class="wk-meta"><span>休日/日計 ${v.hol.toLocaleString()}</span><span>平日/日計 ${v.wd.toLocaleString()}</span></div>`+
     `</div>`;
   };
@@ -1433,7 +1498,7 @@ function renderWeekSummary(data){
     return `<td>${esc(label)}</td><td>${esc(periodText(v))}</td><td class="num">${v.cnt}</td>`+
       `<td class="num">${v.t.toLocaleString()}</td><td class="num">${v.hol.toLocaleString()}</td><td class="num">${v.wd.toLocaleString()}</td>`+
       `<td class="num">${v.p1.toLocaleString()}</td><td class="num">${v.p2.toLocaleString()}</td>`+
-      `<td class="num ${restCls(v)}">${restText(v)}</td>`+
+      `<td class="num ${restCls(v)}">${restText(v)}</td>`+ paceCells(v)+
       `<td class="num ${rateCls(r)}"><b>${fmt(r)}</b></td><td>${barHtml(r)}</td>`;
   };
   tb.innerHTML = keys.map(k=>`<tr>${cells(k, g[k])}</tr>`).join('');
@@ -1451,7 +1516,7 @@ function renderBranchSummary(data){
     const r = pct(v.p1, v.t);
     return `<td>${esc(label)}</td><td class="num">${v.cnt}</td><td class="num">${v.t.toLocaleString()}</td>`+
       `<td class="num">${v.p1.toLocaleString()}</td><td class="num">${v.p2.toLocaleString()}</td>`+
-      `<td class="num ${restCls(v)}">${restText(v)}</td>`+
+      `<td class="num ${restCls(v)}">${restText(v)}</td>`+ paceCells(v)+
       `<td class="num ${rateCls(r)}"><b>${fmt(r)}</b></td><td>${barHtml(r)}</td>`;
   };
   tb.innerHTML = keys.map(k=>`<tr>${cells(k, g[k])}</tr>`).join('');
@@ -1471,15 +1536,16 @@ function directorDetailHtml(v){
     return (x?x.getTime():0)-(y?y.getTime():0);
   });
   return '<table><thead><tr><th>週</th><th>施設名</th><th>期間</th><th>状態</th>'+
-    '<th>目標</th><th>HS即日</th><th>HS予約</th><th>dカード</th><th>光+5G</th><th>達成率</th><th>残り</th><th>ペース</th></tr></thead><tbody>'+
+    '<th>目標</th><th>HS即日</th><th>HS予約</th><th>dカード</th><th>光+5G</th><th>達成率</th><th>残り</th><th>本日想定</th><th>ペース</th></tr></thead><tbody>'+
     rows.map(d=>{
-      const r = pct(d.p1, d.t), rest = d.t - d.p1;
+      const r = pct(d.p1, d.t), rest = d.t - d.p1, p = paceInfo(d.p1, d.exp);
       return `<tr><td>${esc(d.week)}</td><td>${esc(d.facility)}</td><td>${esc(d.start)}〜${esc(d.end)}</td><td>${esc(d.status)}</td>`+
         `<td class="num">${d.t.toLocaleString()}</td><td class="num">${d.p1.toLocaleString()}</td><td class="num">${d.p2.toLocaleString()}</td>`+
         `<td class="num">${d.card.toLocaleString()}</td><td class="num">${d.hk.toLocaleString()}</td>`+
         `<td class="num ${rateCls(r)}"><b>${fmt(r)}</b></td>`+
         `<td class="num ${d.t<=0?'':rest>0?'ng':'ok'}">${d.t<=0?'-':rest>0?rest.toLocaleString():'達成'}</td>`+
-        `<td>${esc(d.pace)}</td></tr>`;
+        `<td class="num">${d.exp===null?'-':Math.round(d.exp).toLocaleString()}</td>`+
+        `<td class="num ${p.cls}">${p.text}</td></tr>`;
     }).join('')+'</tbody></table>';
 }
 function renderDirectorSummary(data){
@@ -1492,14 +1558,14 @@ function renderDirectorSummary(data){
     return `<td>${label}</td><td class="num">${v.cnt}</td><td class="num">${v.t.toLocaleString()}</td>`+
       `<td class="num">${v.p1.toLocaleString()}</td><td class="num">${v.p2.toLocaleString()}</td>`+
       `<td class="num">${v.card.toLocaleString()}</td><td class="num">${v.hk.toLocaleString()}</td>`+
-      `<td class="num ${restCls(v)}">${restText(v)}</td>`+
+      `<td class="num ${restCls(v)}">${restText(v)}</td>`+ paceCells(v)+
       `<td class="num ${rateCls(r)}"><b>${fmt(r)}</b></td><td>${barHtml(r)}</td>`;
   };
   tb.innerHTML = keys.map(k=>{
     const v = g[k], open = openDirectors.has(k);
     const head = `<span class="dir-toggle">${open?'▼':'▶'}</span>${esc(k)}`;
     let html = `<tr class="dir-row" data-dir="${esc(k)}">${cells(head, v)}</tr>`;
-    if(open) html += `<tr class="dir-detail"><td colspan="10">${directorDetailHtml(v)}</td></tr>`;
+    if(open) html += `<tr class="dir-detail"><td colspan="12">${directorDetailHtml(v)}</td></tr>`;
     return html;
   }).join('');
   tb.querySelectorAll('tr.dir-row').forEach(tr=>{ tr.onclick = ()=>toggleDirector(tr.dataset.dir); });
@@ -1531,14 +1597,159 @@ function renderDirWeekMatrix(data){
   }).join('');
 }
 
+// ===== 日次推移グラフ（HS即日の累計）=====
+const TREND_COLORS = ['#2b6cb0','#c0392b','#2b8a4a','#b7791f','#6b46c1','#0f766e','#be185d','#475569'];
+function renderTrendChart(data){
+  const host = document.getElementById('trendChart');
+  if(!host) return;
+  const mode = (document.getElementById('trendMode')||{}).value || 'all';
+  let minD = null, maxD = null;
+  data.forEach(d=>{
+    const s = parseJpDate(d.start), e = parseJpDate(d.end);
+    if(!s || !e) return;
+    if(!minD || s < minD) minD = s;
+    if(!maxD || e > maxD) maxD = e;
+  });
+  if(!minD){ host.innerHTML = '<span class="sub" style="margin:0;">対象イベントがありません。</span>'; return; }
+  const dates = [];
+  for(let d = new Date(minD); d <= maxD; d.setDate(d.getDate()+1)) dates.push(isoOf(new Date(d)));
+  const pos = {}; dates.forEach((iso,k)=>pos[iso]=k);
+
+  // 系列ごとの日次実績
+  const keyOf = mode==='week' ? (d=>d.week) : mode==='director' ? (d=>d.director) : (()=>'全体');
+  const series = {};
+  let hasDaily = false;
+  data.forEach(d=>{
+    const k = keyOf(d);
+    series[k] = series[k] || new Array(dates.length).fill(0);
+    Object.keys(d.daily||{}).forEach(iso=>{
+      const v = Number((d.daily[iso]||{}).p1) || 0;
+      if(v && pos[iso]!==undefined){ series[k][pos[iso]] += v; hasDaily = true; }
+    });
+  });
+  if(!hasDaily){
+    host.innerHTML = '<span class="sub" style="margin:0;">日別入力の実績がまだありません。台帳タブの「日別」ボタンから入力すると、ここに推移が出ます。</span>';
+    return;
+  }
+  // 日次目標の累計（あるべきペース）
+  const plan = new Array(dates.length).fill(0);
+  data.forEach(d=>{
+    const s = parseJpDate(d.start), e = parseJpDate(d.end);
+    if(!s || !e) return;
+    for(let x = new Date(s); x <= e; x.setDate(x.getDate()+1)){
+      const k = pos[isoOf(x)];
+      if(k!==undefined) plan[k] += isHol(x) ? d.hol : d.wd;
+    }
+  });
+  const cum = arr=>{ let t=0; return arr.map(v=>t+=v); };
+  const names = Object.keys(series).sort(mode==='week' ? weekSort : (a,b)=>a.localeCompare(b,'ja'));
+  const lines = names.map(k=>cum(series[k]));
+  const planCum = cum(plan);
+  const yMax = Math.max(1, ...lines.map(a=>a[a.length-1]||0), mode==='all' ? (planCum[planCum.length-1]||0) : 0);
+
+  const W=900, H=280, L=48, R=14, T=14, B=34;
+  const px = k => L + (dates.length<=1 ? 0 : k*(W-L-R)/(dates.length-1));
+  const py = v => H-B - (v/yMax)*(H-B-T);
+  const path = arr => arr.map((v,k)=>(k?'L':'M')+px(k).toFixed(1)+' '+py(v).toFixed(1)).join(' ');
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="日次推移">`;
+  for(let i=0;i<=4;i++){
+    const v = yMax*i/4, y = py(v);
+    svg += `<line class="trend-grid" x1="${L}" y1="${y.toFixed(1)}" x2="${W-R}" y2="${y.toFixed(1)}"/>`;
+    svg += `<text class="trend-axis" x="${L-6}" y="${(y+3).toFixed(1)}" text-anchor="end">${Math.round(v)}</text>`;
+  }
+  const step = Math.max(1, Math.ceil(dates.length/9));
+  dates.forEach((iso,k)=>{
+    if(k % step && k !== dates.length-1) return;
+    const d = new Date(iso+'T00:00:00');
+    svg += `<text class="trend-axis" x="${px(k).toFixed(1)}" y="${H-B+15}" text-anchor="middle">${d.getMonth()+1}/${d.getDate()}</text>`;
+  });
+  const todayIso = isoOf(new Date());
+  if(pos[todayIso]!==undefined){
+    const x = px(pos[todayIso]).toFixed(1);
+    svg += `<line class="trend-today" x1="${x}" y1="${T}" x2="${x}" y2="${H-B}"/>`;
+    svg += `<text class="trend-axis" x="${x}" y="${T+9}" text-anchor="middle" fill="#d9584a">本日</text>`;
+  }
+  // 日次目標の累計は全体モードのみ。週別/ディレクター別に重ねると全体の目標線と読み違えるため
+  if(mode==='all') svg += `<path d="${path(planCum)}" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 4"/>`;
+  lines.forEach((arr,k)=>{
+    svg += `<path d="${path(arr)}" fill="none" stroke="${TREND_COLORS[k%TREND_COLORS.length]}" stroke-width="2.5" stroke-linejoin="round"/>`;
+  });
+  svg += '</svg>';
+
+  const legend = '<div class="trend-legend">'+
+    names.map((k,idx)=>`<span><i style="background:${TREND_COLORS[idx%TREND_COLORS.length]}"></i>${esc(k)} ${(lines[idx][lines[idx].length-1]||0).toLocaleString()}</span>`).join('')+
+    (mode==='all' ? `<span><i style="background:#94a3b8"></i>日次目標の累計 ${Math.round(planCum[planCum.length-1]||0).toLocaleString()}</span>` : '')+'</div>';
+  host.innerHTML = svg + legend;
+}
+
+// ===== 集計CSV出力 =====
+function exportSummaryCsv(){
+  const data = summaryRows();
+  const q = v => '"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  const lines = [];
+  const paceCols = v=>{ const e=aggExp(v), p=paceInfo(v.p1,e); return [e===null?'':Math.round(e), p.r===null?'':p.r.toFixed(1)+'%']; };
+
+  lines.push(q('週別サマリ'));
+  lines.push(['週','期間','件数','目標計','休日/日計','平日/日計','HS即日','HS予約','残り','本日想定','ペース','達成率(即日)'].map(q).join(','));
+  const gw = aggBy(data,'week');
+  const wrow = (label,v)=>{ const r=pct(v.p1,v.t);
+    lines.push([label,periodText(v),v.cnt,v.t,v.hol,v.wd,v.p1,v.p2,v.t-v.p1,...paceCols(v),r===null?'':r.toFixed(1)+'%'].map(q).join(',')); };
+  Object.keys(gw).sort(weekSort).forEach(k=>wrow(k,gw[k]));
+  wrow('月計', aggAll(data));
+
+  lines.push('');
+  lines.push(q('ディレクター別サマリ'));
+  lines.push(['ディレクター','件数','目標計','HS即日','HS予約','dカード','光+5G','残り','本日想定','ペース','達成率(即日)'].map(q).join(','));
+  const gd = aggBy(data,'director');
+  const drow = (label,v)=>{ const r=pct(v.p1,v.t);
+    lines.push([label,v.cnt,v.t,v.p1,v.p2,v.card,v.hk,v.t-v.p1,...paceCols(v),r===null?'':r.toFixed(1)+'%'].map(q).join(',')); };
+  Object.keys(gd).sort((a,b)=>a.localeCompare(b,'ja')).forEach(k=>drow(k,gd[k]));
+  drow('合計', aggAll(data));
+
+  lines.push('');
+  lines.push(q('ディレクター別 担当イベント明細'));
+  lines.push(['ディレクター','週','支店','施設名','開始日','終了日','状態','目標','HS即日','HS予約','dカード','光+5G','達成率','残り','本日想定','ペース'].map(q).join(','));
+  Object.keys(gd).sort((a,b)=>a.localeCompare(b,'ja')).forEach(k=>{
+    gd[k].rows.slice().sort((a,b)=>{
+      const x=parseJpDate(a.start), y=parseJpDate(b.start);
+      return (x?x.getTime():0)-(y?y.getTime():0);
+    }).forEach(d=>{
+      const r = pct(d.p1,d.t), p = paceInfo(d.p1,d.exp);
+      lines.push([k,d.week,d.branch,d.facility,d.start,d.end,d.status,d.t,d.p1,d.p2,d.card,d.hk,
+        r===null?'':r.toFixed(1)+'%', d.t-d.p1, d.exp===null?'':Math.round(d.exp),
+        p.r===null?'':p.r.toFixed(1)+'%'].map(q).join(','));
+    });
+  });
+
+  lines.push('');
+  lines.push(q('支店別サマリ'));
+  lines.push(['支店','件数','目標計','HS即日','HS予約','残り','本日想定','ペース','達成率(即日)'].map(q).join(','));
+  const gb = aggBy(data,'branch');
+  const brow = (label,v)=>{ const r=pct(v.p1,v.t);
+    lines.push([label,v.cnt,v.t,v.p1,v.p2,v.t-v.p1,...paceCols(v),r===null?'':r.toFixed(1)+'%'].map(q).join(',')); };
+  Object.keys(gb).sort((a,b)=>a.localeCompare(b,'ja')).forEach(k=>brow(k,gb[k]));
+  brow('合計', aggAll(data));
+
+  const blob = new Blob(['﻿'+lines.join('\r\n')], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '首都圏支社イベント集計_'+currentMonthKey+'.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('集計CSVを出力しました', 'ok');
+}
+
 function renderSummaries(){
   const data = summaryRows();
   renderWeekCards(data);
   renderWeekSummary(data);
+  renderTrendChart(data);
   renderDirectorSummary(data);
   renderDirWeekMatrix(data);
   renderBranchSummary(data);
 }
+
 
 // 概観: 本日実施中のイベントを大きく表示（現場スタッフが開いてすぐ状況が分かるように）
 function renderTodayCard(){
