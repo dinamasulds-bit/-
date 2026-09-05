@@ -1,0 +1,391 @@
+</head>
+<body>
+<div class="page">
+<div class="app-header">
+  <div class="app-header-top">
+    <h1>首都圏支社イベント実績管理簿（<span id="monthTitleText">2026年7月</span>）</h1>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <select id="monthSelect" onchange="switchMonth(this.value)" style="font-weight:700;"></select>
+      <button class="sec mini-btn" id="fieldModeBtn" onclick="toggleFieldMode()">🚗 現場モード</button>
+      <button class="sec mini-btn" id="fontBtn" onclick="toggleFontSize()">文字サイズ 大</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">🏠 概観</button>
+    <button class="tab-btn" data-tab="ledger" data-field-hide="1" onclick="switchTab('ledger')">📋 台帳</button>
+    <button class="tab-btn" data-tab="eval" data-field-hide="1" onclick="switchTab('eval')">💯 評価サマリ</button>
+    <button class="tab-btn" data-tab="summary" data-field-hide="1" onclick="switchTab('summary')">📊 集計</button>
+    <button class="tab-btn" data-tab="claims" onclick="switchTab('claims')">⚠️ クレーム</button>
+    <button class="tab-btn" data-tab="contacts" onclick="switchTab('contacts')">🤝 連携情報</button>
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-overview">
+<div id="todayCardHost"></div>
+<div id="missingBanner"></div>
+<button onclick="openEasy()" style="width:100%;background:#1a7a3a;border-color:#1a7a3a;font-size:15px;padding:14px;margin-bottom:16px;">📝 今日の実績をかんたん入力</button>
+<h2>今月の進捗ひと目</h2>
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="kpi-label">HS新規達成率（即日/目標）</div>
+    <div class="kpi-value" id="ovHsRate">-</div>
+    <div class="kpi-bar"><i id="ovHsBar" style="width:0%"></i></div>
+    <div class="kpi-sub" id="ovHsRemain">-</div>
+    <div class="hs-ladder" id="ovHsLadder"></div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">委託先評価 合計</div>
+    <div class="kpi-value" id="ovTotalPt">-</div>
+    <div class="kpi-sub" id="ovPtVerdict">-</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">CPA（請求額/件）</div>
+    <div class="kpi-value" id="ovCpa">-</div>
+    <div class="kpi-sub" id="ovCpaVerdict">請求額未入力</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">実施中イベントのペース</div>
+    <div class="kpi-value" id="ovPaceCount">-</div>
+    <div class="pace-chip-row" id="ovPaceChips"></div>
+  </div>
+</div>
+<div class="kpi-grid">
+  <div class="kpi-card small"><div class="kpi-label">開催前</div><div class="kpi-value" id="ovCountBefore">-</div></div>
+  <div class="kpi-card small"><div class="kpi-label">実施中</div><div class="kpi-value" id="ovCountOngoing">-</div></div>
+  <div class="kpi-card small"><div class="kpi-label">終了</div><div class="kpi-value" id="ovCountDone">-</div></div>
+  <div class="kpi-card small"><div class="kpi-label">HS即日 累計</div><div class="kpi-value" id="ovHsCount2">-</div></div>
+  <div class="kpi-card small" style="cursor:pointer;" onclick="switchTab('claims')"><div class="kpi-label">⚠️ 未対応クレーム</div><div class="kpi-value" id="ovClaimsPending">-</div></div>
+</div>
+<h2>週別 目標vs実績（HS即日）</h2>
+<div class="kpi-card" id="ovWeekChart"></div>
+</div><!-- /tab-overview -->
+
+<div class="tab-panel tab-hidden" id="tab-ledger">
+<div class="rules">
+  <b>●HS新規</b>：PI、純粋新規　※ドコモのMVNOはカウント対象外　※<b>委託先評価は当日成約（PI即日）のみ対象</b>。同点の場合は後日含み実績を参考<br>
+  <b>●ドコモ光PI同日付帯率</b>：ドコモ光+home5G獲得数 ／ PI獲得世帯数（委託先申告）　※<span class="warn">申告数とALADIN実績に乖離がある場合、加点ポイント1ランクダウン</span><br>
+  <b>●加点</b>：HS新規達成率 120%以上=12pt / 100%以上=10pt / 80%以上=8pt　｜　dカード付帯率 15%以上=4pt / 10%以上=2pt　｜　光付帯率 20%以上=4pt / 15%以上=2pt<br>
+  <b>●減点</b>：法令違反等=次月以降契約なし / 催事回数制限・出禁=-4pt / 書面提出・返金事案=-3pt / 口頭注意・報告物遅延=-1pt / その他 都度判断<br>
+  <b>●継続判定</b>：委託先評価 足切り24pt ／ CPA 足切り50,000円/件（目標4万円/件）。<span class="warn">どちらか片方でも足切り未達=契約終了</span>
+</div>
+
+<div class="toolbar">
+  <label>週: <select id="fWeek" onchange="applyFilter()"><option value="">全て</option></select></label>
+  <label>支店: <select id="fBranch" onchange="applyFilter()"><option value="">全て</option></select></label>
+  <label>状態: <select id="fStatus" onchange="applyFilter()"><option value="">全て</option><option>開催前</option><option>実施中</option><option>終了</option></select></label>
+  <label>ディレクター: <select id="fDirector" onchange="applyFilter()"><option value="">全て</option></select></label>
+  <button onclick="openEasy()" style="background:#1a7a3a;border-color:#1a7a3a;">📝 かんたん入力</button>
+  <button id="targetBulkBtn" onclick="openTargetBulk()" style="background:#b8860b;border-color:#b8860b;">🎯 目標値まとめ入力</button>
+  <button id="addRowBtn" onclick="addRow();saveAll()">行追加</button>
+  <button class="sec" onclick="exportCsv()">CSV出力</button>
+  <button class="sec" onclick="window.print()">印刷</button>
+  <button class="danger" id="resetBtn" onclick="resetAll()">初期データに戻す</button>
+  <button class="sec" id="simpleBtn" onclick="toggleSimple()">簡易表示</button>
+  <button class="lockbtn" id="lockBtn" onclick="onLockBtn()">編集する</button>
+  <button class="sec" onclick="openHistory()">変更履歴</button>
+  <span class="savemsg" id="editorNameLabel" style="cursor:pointer;text-decoration:underline;" onclick="promptEditorName()"></span>
+  <span class="savemsg" id="syncMsg" style="color:#c0392b;">共有: 未接続（ローカルのみ）</span>
+  <span class="savemsg" id="lastSavedMsg"></span>
+  <span class="savemsg" id="netMsg" style="color:#c0392b;font-weight:700;"></span>
+</div>
+
+<div class="wrap">
+<table id="ledger">
+  <thead>
+    <tr>
+      <th rowspan="2">状態</th>
+      <th rowspan="2">実施週</th>
+      <th rowspan="2" class="detail-col">項番</th>
+      <th rowspan="2" class="detail-col">枠</th>
+      <th rowspan="2">支店</th>
+      <th rowspan="2">施設名</th>
+      <th colspan="2" class="detail-col">メインスペース（①週末実施の会場）</th>
+      <th colspan="2" class="detail-col">サブスペース（②）</th>
+      <th rowspan="2" class="detail-col">備考</th>
+      <th rowspan="2" class="detail-col">実施規模</th>
+      <th rowspan="2" class="detail-col">①サイズ</th>
+      <th rowspan="2" class="detail-col">②サイズ</th>
+      <th rowspan="2">開始日</th>
+      <th rowspan="2">終了日</th>
+      <th rowspan="2" class="detail-col">実施日数</th>
+      <th rowspan="2" class="detail-col">コンテンツ</th>
+      <th rowspan="2">委託先</th>
+      <th rowspan="2">ディレクター</th>
+      <th rowspan="2">目標値</th>
+      <th rowspan="2" class="detail-col">休日/日</th>
+      <th rowspan="2" class="detail-col">平日/日</th>
+      <th colspan="6" class="grp-actual">実績</th>
+      <th rowspan="2" class="grp-rate">達成率<br>(即日)※評価</th>
+      <th rowspan="2" class="grp-rate detail-col">達成率<br>(即日+予約)</th>
+      <th rowspan="2" class="grp-rate detail-col">dカード<br>付帯率</th>
+      <th rowspan="2" class="grp-rate detail-col">光PI同日<br>付帯率</th>
+      <th rowspan="2" class="grp-rate">ペース<br>(実施中)</th>
+      <th rowspan="2">日別<br>入力</th>
+    </tr>
+    <tr>
+      <th class="detail-col">フロア</th><th class="detail-col">スペース名</th>
+      <th class="detail-col">フロア</th><th class="detail-col">スペース名</th>
+      <th class="grp-actual">HS(即日)</th>
+      <th class="grp-actual">HS(予約)</th>
+      <th class="grp-actual detail-col">PI獲得世帯数<br>(委託先申告)</th>
+      <th class="grp-actual detail-col">dカード</th>
+      <th class="grp-actual detail-col">光</th>
+      <th class="grp-actual detail-col">home5G</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+  <tfoot>
+    <tr>
+      <td colspan="20">合計（表示行のみ）</td>
+      <td class="num" id="sumTarget"></td>
+      <td colspan="2"></td>
+      <td class="num" id="sumPi1"></td>
+      <td class="num" id="sumPi2"></td>
+      <td class="num" id="sumSetai"></td>
+      <td class="num" id="sumCard"></td>
+      <td class="num" id="sumHikari"></td>
+      <td class="num" id="sumH5g"></td>
+      <td class="calc" id="totalRate1"></td>
+      <td class="calc detail-col" id="totalRate2"></td>
+      <td class="calc detail-col" id="totalCardRate"></td>
+      <td class="calc detail-col" id="totalFutai"></td>
+      <td class="calc"></td>
+      <td></td>
+    </tr>
+  </tfoot>
+</table>
+</div>
+</div><!-- /tab-ledger -->
+
+<div class="tab-panel tab-hidden" id="tab-eval">
+<h2>委託先評価サマリ（全行集計・月次）</h2>
+<div class="panel">
+  <div class="card">
+    <h3>加点ポイント</h3>
+    <div class="row"><span>HS新規達成率（即日/目標）</span><span class="v" id="evHsRate">-</span></div>
+    <div class="row"><span>→ ポイント（120%↑12pt / 100%↑10pt / 80%↑8pt）</span><span class="v pt" id="evHsPt">-</span></div>
+    <div class="row"><span>dカード付帯率（カード/PI即日）</span><span class="v" id="evCardRate">-</span></div>
+    <div class="row"><span>→ ポイント（15%↑4pt / 10%↑2pt）</span><span class="v pt" id="evCardPt">-</span></div>
+    <div class="row"><span>光PI同日付帯率（光+home5G/PI世帯数）</span><span class="v" id="evHikariRate">-</span></div>
+    <div class="row"><span>→ ポイント（20%↑4pt / 15%↑2pt）</span><span class="v pt" id="evHikariPt">-</span></div>
+  </div>
+  <div class="card">
+    <h3>付帯率 目標獲得数（自動算出）</h3>
+    <div class="row"><span><b>dカード</b>（PI即日比・現在 <span id="tgCardNow">-</span>件）</span><span></span></div>
+    <div class="row"><span>　2pt（10%）に必要</span><span class="v" id="tgCard10">-</span></div>
+    <div class="row"><span>　4pt（15%）に必要</span><span class="v" id="tgCard15">-</span></div>
+    <div class="row" style="border-top:1px solid #eee;margin-top:4px;padding-top:4px;"><span><b>光+home5G</b>（PI世帯数比・現在 <span id="tgHikariNow">-</span>件）</span><span></span></div>
+    <div class="row"><span>　2pt（15%）に必要</span><span class="v" id="tgHikari15">-</span></div>
+    <div class="row"><span>　4pt（20%）に必要</span><span class="v" id="tgHikari20">-</span></div>
+  </div>
+  <div class="card">
+    <h3>減点・合計</h3>
+    <div class="row"><span>減点（インシデント）</span><span><input type="number" id="evMinus" value="0" min="0" oninput="updateAll();saveAll()"> pt</span></div>
+    <div class="row"><span>ALADIN乖離（付帯率1ランクダウン）</span><span><label><input type="checkbox" id="evAladinCard" onchange="updateAll();saveAll()" style="width:auto">dカード</label>　<label><input type="checkbox" id="evAladinHikari" onchange="updateAll();saveAll()" style="width:auto">光</label></span></div>
+    <div class="row" style="border-top:1px solid #ccc;margin-top:6px;padding-top:6px;"><span><b>委託先評価 合計</b></span><span class="v pt" id="evTotalPt">-</span></div>
+    <div class="verdict" id="evPtVerdict">足切り基準: 24pt</div>
+  </div>
+  <div class="card">
+    <h3>CPA（7-8月合計が評価対象）</h3>
+    <div class="row"><span>ご請求額（WS等支社依頼費用は除く）</span><span><input type="number" id="evBilling" value="" placeholder="円" oninput="updateAll();saveAll()"> 円</span></div>
+    <div class="row"><span>HS新規実績（当日成約 ΣHS即日）</span><span class="v" id="evHsCount">-</span></div>
+    <div class="row"><span><b>CPA（請求額/件）</b></span><span class="v pt" id="evCpa">-</span></div>
+    <div class="row"><span>目標: 40,000円/件　足切り: 50,000円/件</span><span></span></div>
+    <div class="verdict" id="evCpaVerdict">請求額を入力</div>
+  </div>
+</div>
+</div><!-- /tab-eval -->
+
+<div class="tab-panel tab-hidden" id="tab-summary">
+<div class="toolbar">
+  <button class="sec" onclick="exportSummaryCsv()">集計CSV出力</button>
+</div>
+
+<h2>週別 目標・進捗</h2>
+<div class="sub">週ごとの目標台数と現時点の実績。大きい数字は「HS即日 ÷ 目標」。「本日想定」は日次目標（休日/日・平日/日）を本日ぶんまで積み上げた台数で、終了したイベントは期間満了ぶんを計上。</div>
+<div id="weekCards" class="wk-grid"></div>
+
+<h2>週別サマリ</h2>
+<div class="wrap">
+<table class="mini" id="weekSummary">
+  <thead><tr><th>週</th><th>期間</th><th>件数</th><th>目標計</th><th>休日/日計</th><th>平日/日計</th><th>HS即日</th><th>HS予約</th><th>残り</th><th>本日想定</th><th>ペース</th><th>達成率(即日)</th><th style="min-width:140px">進捗</th></tr></thead>
+  <tbody></tbody>
+  <tfoot></tfoot>
+</table>
+</div>
+
+<h2>目標・実績グラフ</h2>
+<div class="sub">日別入力がなくても、台帳の合計値だけで表示されます。棒は左から「目標」「本日想定」「HS即日（実績）」。</div>
+<div class="toolbar">
+  <label>表示単位: <select id="barMode" onchange="renderGroupBarChart(summaryRows())"><option value="week">週別</option><option value="director">ディレクター別</option><option value="branch">支店別</option></select></label>
+</div>
+<div class="trend-box" id="groupBarChart"></div>
+
+<h2>日次推移（HS即日の累計）</h2>
+<div class="sub">こちらは日別入力タブに入っている実績だけを集計。灰色の破線は日次目標の累計（あるべきペース）。</div>
+<div class="toolbar">
+  <label>表示単位: <select id="trendMode" onchange="renderTrendChart(summaryRows())"><option value="all">全体</option><option value="week">週別</option><option value="director">ディレクター別</option></select></label>
+</div>
+<div class="trend-box" id="trendChart"></div>
+
+<h2>ディレクター別サマリ</h2>
+<div class="sub">行をクリックすると、そのディレクターの担当イベント明細が開きます。ディレクター名は台帳タブの「ディレクター」列に入力してください。</div>
+<div class="wrap">
+<table class="mini" id="directorSummary">
+  <thead><tr><th>ディレクター</th><th>件数</th><th>目標計</th><th>HS即日</th><th>HS予約</th><th>dカード</th><th>光+5G</th><th>残り</th><th>本日想定</th><th>ペース</th><th>達成率(即日)</th><th style="min-width:140px">進捗</th></tr></thead>
+  <tbody></tbody>
+  <tfoot></tfoot>
+</table>
+</div>
+
+<h2>ディレクター × 週（実績／目標）</h2>
+<div class="sub">セルの上段が達成率、下段が「HS即日 / 目標」。担当のない週は「-」。</div>
+<div class="wrap">
+<table class="mini" id="dirWeekMatrix">
+  <thead></thead>
+  <tbody></tbody>
+</table>
+</div>
+
+<h2>支店別サマリ</h2>
+<div class="wrap">
+<table class="mini" id="branchSummary">
+  <thead><tr><th>支店</th><th>件数</th><th>目標計</th><th>HS即日</th><th>HS予約</th><th>残り</th><th>本日想定</th><th>ペース</th><th>達成率(即日)</th><th style="min-width:140px">進捗</th></tr></thead>
+  <tbody></tbody>
+  <tfoot></tfoot>
+</table>
+</div>
+</div><!-- /tab-summary -->
+
+<div class="tab-panel tab-hidden" id="tab-claims">
+<h2>クレーム蓄積シート</h2>
+<div class="sub">このタブはパスワード不要・誰でも記入できます。</div>
+<div class="sub" id="claimsSummary">-</div>
+<div class="toolbar">
+  <label>状況: <select id="clStatusFilter" onchange="applyClaimFilter()"><option value="">全て</option><option>未対応</option><option>対応中</option><option>対応済</option></select></label>
+  <label>施設名: <input type="text" id="clFacilitySearch" placeholder="施設名で検索" oninput="applyClaimFilter()" style="padding:6px 9px;font-size:13px;border:1px solid #ccd4e0;border-radius:7px;"></label>
+  <button id="addClaimBtn" onclick="if(getEditorName()==='不明')promptEditorName();addClaimRow();saveAll()">クレーム追加</button>
+</div>
+<div class="wrap">
+<table id="claimsTable">
+  <thead>
+    <tr>
+      <th style="min-width:110px">発生日</th>
+      <th style="min-width:70px">経過</th>
+      <th style="min-width:140px">施設名</th>
+      <th style="min-width:110px">支店</th>
+      <th style="min-width:100px">委託先</th>
+      <th style="min-width:260px">クレーム内容</th>
+      <th style="min-width:100px">対応状況</th>
+      <th style="min-width:260px">対応内容</th>
+      <th style="min-width:90px">担当者</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+</div>
+</div><!-- /tab-claims -->
+
+<div class="tab-panel tab-hidden" id="tab-contacts">
+<h2>連携情報（連絡先）— <span id="monthTitleText2">2026年7月</span></h2>
+<div class="sub">支店連絡先・代理店（現場）連絡先をイベントごとに一覧表示。委託先申告ベースのため月次で更新が必要。</div>
+<div class="toolbar">
+  <label>週: <select id="cWeekFilter" onchange="applyContactFilter()"><option value="">全て</option></select></label>
+  <label>施設名: <input type="text" id="cFacilitySearch" placeholder="施設名で検索" oninput="applyContactFilter()" style="padding:6px 9px;font-size:13px;border:1px solid #ccd4e0;border-radius:7px;"></label>
+  <button class="sec" onclick="toggleSimple()">簡易表示切替</button>
+  <button class="sec" onclick="exportContactsVcf()">vCard出力</button>
+  <button id="addContactBtn" onclick="addContactRow();saveAll()">連絡先追加</button>
+</div>
+<div class="wrap">
+<table id="contactsTable" class="pre-wrap-table">
+  <thead>
+    <tr>
+      <th rowspan="2" style="min-width:44px">週</th>
+      <th rowspan="2" class="detail-col" style="min-width:44px">項番</th>
+      <th rowspan="2" style="min-width:96px">施設名</th>
+      <th rowspan="2" class="detail-col" style="min-width:64px">開始日</th>
+      <th rowspan="2" class="detail-col" style="min-width:64px">終了日</th>
+      <th colspan="3" class="detail-col">連携店舗</th>
+      <th colspan="4" class="grp-actual">支店連絡先</th>
+      <th colspan="4" class="grp-rate">代理店さま連絡先</th>
+      <th rowspan="2" class="detail-col" style="min-width:120px">備考</th>
+    </tr>
+    <tr>
+      <th class="detail-col" style="min-width:110px">代表</th>
+      <th class="detail-col" style="min-width:110px">連携②</th>
+      <th class="detail-col" style="min-width:110px">連携③</th>
+      <th class="grp-actual" style="min-width:90px">担当者名</th>
+      <th class="grp-actual detail-col" style="min-width:80px">部署名</th>
+      <th class="grp-actual" style="min-width:100px">連絡先</th>
+      <th class="grp-actual detail-col" style="min-width:140px">メールアドレス</th>
+      <th class="grp-rate" style="min-width:90px">担当者名</th>
+      <th class="grp-rate detail-col" style="min-width:80px">部署名</th>
+      <th class="grp-rate" style="min-width:100px">連絡先</th>
+      <th class="grp-rate detail-col" style="min-width:140px">メールアドレス</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+</div>
+</div><!-- /tab-contacts -->
+
+</div><!-- /.page -->
+
+<div id="toastHost" class="toast-host"></div>
+
+<datalist id="dirList"></datalist>
+
+<div id="easyModal" class="modal-bg" style="display:none" onclick="if(event.target===this)closeEasy()">
+  <div class="modal" style="width:min(420px,92vw);">
+    <div class="modal-head"><b>かんたん入力</b><button class="sec" onclick="closeEasy()">閉じる</button></div>
+    <div class="sub">施設と日付を選んで数字をポン。保存すると即反映されます。</div>
+    <div id="ezLockMsg" class="verdict ng" style="display:none;">編集ロック解除中のみ入力できます。ツールバーの「編集する」から解除してください。</div>
+    <div class="ez-field">
+      <label>施設（実施中を優先表示）</label>
+      <select id="ezFacility" onchange="onEzFacilityChange()"></select>
+    </div>
+    <div class="ez-field">
+      <label>日付</label>
+      <input type="date" id="ezDate" onchange="onEzDateChange()">
+    </div>
+    <div class="sub" id="ezTargetHint" style="margin-bottom:6px;"></div>
+    <div id="ezFields"></div>
+    <button id="ezSaveBtn" onclick="saveEasyInput()" style="width:100%;margin-top:14px;font-size:15px;padding:13px;">この内容を保存</button>
+  </div>
+</div>
+
+<div id="dayModal" class="modal-bg" style="display:none" onclick="if(event.target===this)closeDaily()">
+  <div class="modal">
+    <div class="modal-head"><b id="dmTitle"></b><button class="sec" onclick="closeDaily()">閉じる</button></div>
+    <div class="sub">日毎に入力すると行の実績合計に自動反映。日次目標: 土日=休日/日、平日=平日/日。</div>
+    <div id="dmBody"></div>
+  </div>
+</div>
+
+<div id="targetModal" class="modal-bg" style="display:none" onclick="if(event.target===this)closeTargetBulk()">
+  <div class="modal" style="min-width:min(760px,94vw);">
+    <div class="modal-head"><b>目標値まとめ入力</b><button class="sec" onclick="closeTargetBulk()">閉じる</button></div>
+    <div class="sub">施設名・期間を見ながら目標値/休日目標/平日目標をまとめて入力できます。空欄のまま保存すると未入力扱いのままになります。</div>
+    <label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+      <input type="checkbox" id="tbMissingOnly" checked onchange="renderTargetBulk()"> 未入力の行だけ表示
+    </label>
+    <div class="wrap" style="max-height:60vh;">
+    <table id="targetBulkTable">
+      <thead><tr><th>施設名</th><th>期間</th><th style="min-width:90px">目標値</th><th style="min-width:90px">休日/日</th><th style="min-width:90px">平日/日</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:8px;">
+      <button onclick="saveTargetBulk()">保存して反映</button>
+      <button class="sec" onclick="closeTargetBulk()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<div id="historyModal" class="modal-bg" style="display:none" onclick="if(event.target===this)closeHistory()">
+  <div class="modal" style="min-width:min(720px,92vw);">
+    <div class="modal-head"><b>変更履歴（直近40件・共有）</b><button class="sec" onclick="closeHistory()">閉じる</button></div>
+    <div class="sub">「この内容に戻す」は編集ロック解除中のみ操作可。復元も履歴に記録される。</div>
+    <div id="historyBody" style="max-height:70vh;overflow:auto;"></div>
+  </div>
+</div>

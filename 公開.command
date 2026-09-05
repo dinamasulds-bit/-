@@ -8,6 +8,16 @@ echo " 首都圏イベント管理簿 公開ツール"
 echo "=============================="
 echo ""
 
+# src/ から index.html を組み立て直す（ビルド忘れで古い内容を公開しないように）
+echo "▼ ビルド中..."
+if ! python3 build.py; then
+  echo ""
+  echo "⚠ ビルドに失敗しました。公開を中止します。"
+  read -n 1 -s -r -p "このウィンドウは閉じてOKです（何かキーを押す）"
+  exit 1
+fi
+echo ""
+
 # 変更があるか確認
 if [ -z "$(git status --porcelain)" ]; then
   echo "変更なし。公開するものがありません。"
