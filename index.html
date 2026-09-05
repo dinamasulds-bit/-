@@ -70,6 +70,31 @@
   .hs-ladder .rung.done{background:var(--ok-bg);color:var(--ok);}
   .hs-ladder .rung .rung-pct{font-weight:800;font-size:13px;display:block;}
   .hs-ladder .rung .rung-note{font-size:10px;font-weight:600;}
+  /* 集計タブ: 週別カード / ディレクター明細 */
+  .wk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:12px;margin:10px 0 6px;}
+  .wk-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;
+    box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px;}
+  .wk-card.total{border:1.5px solid var(--navy2);}
+  .wk-head{display:flex;justify-content:space-between;align-items:baseline;gap:6px;}
+  .wk-name{font-size:15px;font-weight:800;color:var(--navy);}
+  .wk-range{font-size:11px;color:var(--muted);}
+  .wk-main{font-size:23px;font-weight:800;line-height:1.15;color:var(--navy);font-variant-numeric:tabular-nums;}
+  .wk-main.ok{color:var(--ok);} .wk-main.ng{color:var(--ng);}
+  .wk-main small{font-size:12px;font-weight:700;color:var(--muted);}
+  .wk-card .bar{height:20px;border-radius:6px;}
+  .wk-card .bar span{line-height:20px;font-size:11px;}
+  .wk-meta{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--muted);font-weight:600;}
+  .wk-meta .ng{color:var(--ng);} .wk-meta .ok{color:var(--ok);}
+  tr.dir-row{cursor:pointer;}
+  tr.dir-row .dir-toggle{display:inline-block;width:13px;color:var(--muted);font-size:10px;}
+  tr.dir-detail>td{padding:0 !important;background:#f5f8fc;}
+  tr.dir-detail table{width:100%;border-collapse:collapse;font-size:12px;}
+  tr.dir-detail th{background:#e7edf5;color:var(--navy2);font-size:11px;padding:5px 8px;text-align:left;white-space:nowrap;}
+  tr.dir-detail td{padding:5px 8px;border-top:1px solid var(--border);white-space:nowrap;background:transparent;}
+  tr.dir-detail td.num{text-align:right;font-variant-numeric:tabular-nums;}
+  #dirWeekMatrix td.mx{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  #dirWeekMatrix td.mx .mx-rate{font-weight:800;} #dirWeekMatrix td.mx .mx-num{color:var(--muted);font-size:11px;}
+  #dirWeekMatrix td.mx.zero{color:var(--muted);}
   .week-chart-row{display:flex;align-items:center;gap:12px;padding:6px 0;}
   .week-chart-row .wlabel{width:34px;font-weight:700;font-size:13px;color:var(--navy);}
   .week-chart-row .bar{flex:1;height:20px;border-radius:6px;}
@@ -299,6 +324,10 @@
     .modal td.sum{background:#22301f;}
     .modal td.hol{background:#3a2626;}
     .verdict{background:#242b3a;}
+    .wk-main{color:#dce6f2;}
+    tr.dir-detail>td{background:#1f2634;}
+    tr.dir-detail th{background:#273042;color:#c7d2e3;}
+    tr.dir-detail td{border-top-color:#333c4e;}
     .kpi-value{color:#dce6f2;}
     .bar{background:#2a3346;}
     .bar span{color:#e5e9f0;}
@@ -534,10 +563,34 @@
 </div><!-- /tab-eval -->
 
 <div class="tab-panel tab-hidden" id="tab-summary">
+<h2>週別 目標・進捗</h2>
+<div class="sub">週ごとの目標台数と現時点の実績。大きい数字は「HS即日 ÷ 目標」。休日/日・平日/日は台帳の1日あたり目標の合計。</div>
+<div id="weekCards" class="wk-grid"></div>
+
+<h2>週別サマリ</h2>
+<div class="wrap">
+<table class="mini" id="weekSummary">
+  <thead><tr><th>週</th><th>期間</th><th>件数</th><th>目標計</th><th>休日/日計</th><th>平日/日計</th><th>HS即日</th><th>HS予約</th><th>残り</th><th>達成率(即日)</th><th style="min-width:140px">進捗</th></tr></thead>
+  <tbody></tbody>
+  <tfoot></tfoot>
+</table>
+</div>
+
 <h2>ディレクター別サマリ</h2>
+<div class="sub">行をクリックすると、そのディレクターの担当イベント明細が開きます。ディレクター名は台帳タブの「ディレクター」列に入力してください。</div>
 <div class="wrap">
 <table class="mini" id="directorSummary">
-  <thead><tr><th>ディレクター</th><th>件数</th><th>目標計</th><th>HS即日</th><th>HS予約</th><th>dカード</th><th>光+5G</th><th>達成率(即日)</th><th style="min-width:140px">進捗</th></tr></thead>
+  <thead><tr><th>ディレクター</th><th>件数</th><th>目標計</th><th>HS即日</th><th>HS予約</th><th>dカード</th><th>光+5G</th><th>残り</th><th>達成率(即日)</th><th style="min-width:140px">進捗</th></tr></thead>
+  <tbody></tbody>
+  <tfoot></tfoot>
+</table>
+</div>
+
+<h2>ディレクター × 週（実績／目標）</h2>
+<div class="sub">セルの上段が達成率、下段が「HS即日 / 目標」。担当のない週は「-」。</div>
+<div class="wrap">
+<table class="mini" id="dirWeekMatrix">
+  <thead></thead>
   <tbody></tbody>
 </table>
 </div>
@@ -545,16 +598,9 @@
 <h2>支店別サマリ</h2>
 <div class="wrap">
 <table class="mini" id="branchSummary">
-  <thead><tr><th>支店</th><th>件数</th><th>目標計</th><th>HS即日</th><th>HS予約</th><th>達成率(即日)</th><th style="min-width:140px">進捗</th></tr></thead>
+  <thead><tr><th>支店</th><th>件数</th><th>目標計</th><th>HS即日</th><th>HS予約</th><th>残り</th><th>達成率(即日)</th><th style="min-width:140px">進捗</th></tr></thead>
   <tbody></tbody>
-</table>
-</div>
-
-<h2>週別サマリ</h2>
-<div class="wrap">
-<table class="mini" id="weekSummary">
-  <thead><tr><th>週</th><th>件数</th><th>目標計</th><th>HS即日</th><th>HS予約</th><th>達成率(即日)</th><th style="min-width:140px">進捗</th></tr></thead>
-  <tbody></tbody>
+  <tfoot></tfoot>
 </table>
 </div>
 </div><!-- /tab-summary -->
@@ -1310,27 +1356,188 @@ function barHtml(rate){
   return `<div class="bar"><i class="${cls}" style="width:${w}%"></i><span>${rate.toFixed(1)}%</span></div>`;
 }
 
-function groupSummary(tableId, keyIdx, extra){
-  const rows = [...document.querySelectorAll('#ledger tbody tr')];
-  const g = {};
-  rows.forEach(r=>{
+function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ===== 集計タブ =====
+// 台帳の1行を集計しやすい素データに変換する
+function summaryRows(){
+  return [...document.querySelectorAll('#ledger tbody tr')].map(r=>{
     const c = r.cells;
-    const k = cellText(c[keyIdx]).trim() || '(未設定)';
-    g[k] = g[k] || {cnt:0,t:0,p1:0,p2:0,card:0,hk:0};
-    g[k].cnt++; g[k].t+=n(c[TARGET_IDX]); g[k].p1+=n(c[23]); g[k].p2+=n(c[24]);
-    g[k].card+=n(c[26]); g[k].hk+=n(c[27])+n(c[28]);
+    return {
+      week: cellText(c[1]).trim() || '(未設定)',
+      branch: cellText(c[4]).trim() || '(未設定)',
+      facility: cellText(c[5]).trim(),
+      start: cellText(c[14]).trim(),
+      end: cellText(c[15]).trim(),
+      director: cellText(c[DIRECTOR_IDX]).trim() || '(未設定)',
+      t: n(c[TARGET_IDX]), hol: n(c[21]), wd: n(c[22]),
+      p1: n(c[23]), p2: n(c[24]), card: n(c[26]), hk: n(c[27])+n(c[28]),
+      pace: (c[PACE_COL].textContent||'').trim(),
+      status: rowStatus(c)[0]
+    };
   });
-  const tb = document.querySelector('#'+tableId+' tbody');
-  tb.innerHTML = '';
-  Object.keys(g).sort().forEach(k=>{
-    const v = g[k], r = pct(v.p1, v.t);
-    const cls = r===null ? '' : r>=100 ? 'ok' : 'ng';
-    const ex = extra ? `<td class="num">${v.card.toLocaleString()}</td><td class="num">${v.hk.toLocaleString()}</td>` : '';
-    tb.insertAdjacentHTML('beforeend',
-      `<tr><td>${k}</td><td class="num">${v.cnt}</td><td class="num">${v.t.toLocaleString()}</td>`+
-      `<td class="num">${v.p1.toLocaleString()}</td><td class="num">${v.p2.toLocaleString()}</td>${ex}`+
-      `<td class="num ${cls}"><b>${fmt(r)}</b></td><td>${barHtml(r)}</td></tr>`);
+}
+const newAgg = ()=>({cnt:0,t:0,hol:0,wd:0,p1:0,p2:0,card:0,hk:0,rows:[]});
+function addAgg(a,d){ a.cnt++; a.t+=d.t; a.hol+=d.hol; a.wd+=d.wd; a.p1+=d.p1; a.p2+=d.p2; a.card+=d.card; a.hk+=d.hk; a.rows.push(d); }
+function aggBy(data, key){
+  const g = {};
+  data.forEach(d=>{ const k=d[key]; (g[k] = g[k] || newAgg()); addAgg(g[k], d); });
+  return g;
+}
+function aggAll(data){ const a = newAgg(); data.forEach(d=>addAgg(a,d)); return a; }
+// 「1W」「2W」…を数値順に。文字列ソートだと10W以降が2Wより前に来るため
+function weekSort(a,b){
+  const x=parseInt(a,10), y=parseInt(b,10);
+  return (isNaN(x)?999:x)-(isNaN(y)?999:y) || a.localeCompare(b,'ja');
+}
+function restText(v){ const rest=v.t-v.p1; return v.t<=0 ? '-' : rest<=0 ? '達成' : rest.toLocaleString(); }
+function restCls(v){ return v.t<=0 ? '' : (v.t-v.p1)<=0 ? 'ok' : 'ng'; }
+function rateCls(r){ return r===null ? '' : r>=100 ? 'ok' : 'ng'; }
+// グループ内の最早開始日〜最遅終了日
+function periodText(v){
+  const ds = v.rows.map(d=>({s:parseJpDate(d.start), e:parseJpDate(d.end), d})).filter(x=>x.s&&x.e);
+  if(!ds.length) return '';
+  const a = ds.reduce((x,y)=>x.s<=y.s?x:y), b = ds.reduce((x,y)=>x.e>=y.e?x:y);
+  return a.d.start+'〜'+b.d.end;
+}
+
+// 週別カード（週ごとの目標がひと目で分かるように大きく表示）
+function renderWeekCards(data){
+  const el = document.getElementById('weekCards');
+  if(!el) return;
+  const g = aggBy(data,'week');
+  const weeks = Object.keys(g).sort(weekSort);
+  if(!weeks.length){ el.innerHTML = '<span class="sub" style="margin:0;">データなし</span>'; return; }
+  const card = (name, v, cls)=>{
+    const r = pct(v.p1, v.t), rest = v.t - v.p1;
+    return `<div class="wk-card ${cls||''}">`+
+      `<div class="wk-head"><span class="wk-name">${esc(name)}</span><span class="wk-range">${esc(periodText(v))}</span></div>`+
+      `<div class="wk-main ${rateCls(r)}">${v.p1.toLocaleString()} <small>/ 目標 ${v.t.toLocaleString()}</small></div>`+
+      barHtml(r)+
+      `<div class="wk-meta"><span>${v.cnt}件</span>`+
+      `<span class="${v.t<=0?'':rest>0?'ng':'ok'}">${v.t<=0?'目標未入力':rest>0?'あと'+rest.toLocaleString()+'台':'目標達成'}</span></div>`+
+      `<div class="wk-meta"><span>休日/日計 ${v.hol.toLocaleString()}</span><span>平日/日計 ${v.wd.toLocaleString()}</span></div>`+
+    `</div>`;
+  };
+  el.innerHTML = weeks.map(w=>card(w, g[w])).join('') + card('月計', aggAll(data), 'total');
+}
+
+// 週別サマリ表
+function renderWeekSummary(data){
+  const tb = document.querySelector('#weekSummary tbody');
+  if(!tb) return;
+  const g = aggBy(data,'week');
+  const keys = Object.keys(g).sort(weekSort);
+  const cells = (label, v)=>{
+    const r = pct(v.p1, v.t);
+    return `<td>${esc(label)}</td><td>${esc(periodText(v))}</td><td class="num">${v.cnt}</td>`+
+      `<td class="num">${v.t.toLocaleString()}</td><td class="num">${v.hol.toLocaleString()}</td><td class="num">${v.wd.toLocaleString()}</td>`+
+      `<td class="num">${v.p1.toLocaleString()}</td><td class="num">${v.p2.toLocaleString()}</td>`+
+      `<td class="num ${restCls(v)}">${restText(v)}</td>`+
+      `<td class="num ${rateCls(r)}"><b>${fmt(r)}</b></td><td>${barHtml(r)}</td>`;
+  };
+  tb.innerHTML = keys.map(k=>`<tr>${cells(k, g[k])}</tr>`).join('');
+  document.querySelector('#weekSummary tfoot').innerHTML =
+    keys.length ? `<tr>${cells('月計', aggAll(data))}</tr>` : '';
+}
+
+// 支店別サマリ表
+function renderBranchSummary(data){
+  const tb = document.querySelector('#branchSummary tbody');
+  if(!tb) return;
+  const g = aggBy(data,'branch');
+  const keys = Object.keys(g).sort((a,b)=>a.localeCompare(b,'ja'));
+  const cells = (label, v)=>{
+    const r = pct(v.p1, v.t);
+    return `<td>${esc(label)}</td><td class="num">${v.cnt}</td><td class="num">${v.t.toLocaleString()}</td>`+
+      `<td class="num">${v.p1.toLocaleString()}</td><td class="num">${v.p2.toLocaleString()}</td>`+
+      `<td class="num ${restCls(v)}">${restText(v)}</td>`+
+      `<td class="num ${rateCls(r)}"><b>${fmt(r)}</b></td><td>${barHtml(r)}</td>`;
+  };
+  tb.innerHTML = keys.map(k=>`<tr>${cells(k, g[k])}</tr>`).join('');
+  document.querySelector('#branchSummary tfoot').innerHTML =
+    keys.length ? `<tr>${cells('合計', aggAll(data))}</tr>` : '';
+}
+
+// ディレクター別サマリ（行クリックで担当イベント明細を開閉）
+const openDirectors = new Set();
+function toggleDirector(name){
+  if(openDirectors.has(name)) openDirectors.delete(name); else openDirectors.add(name);
+  renderDirectorSummary(summaryRows());
+}
+function directorDetailHtml(v){
+  const rows = v.rows.slice().sort((a,b)=>{
+    const x=parseJpDate(a.start), y=parseJpDate(b.start);
+    return (x?x.getTime():0)-(y?y.getTime():0);
   });
+  return '<table><thead><tr><th>週</th><th>施設名</th><th>期間</th><th>状態</th>'+
+    '<th>目標</th><th>HS即日</th><th>HS予約</th><th>dカード</th><th>光+5G</th><th>達成率</th><th>残り</th><th>ペース</th></tr></thead><tbody>'+
+    rows.map(d=>{
+      const r = pct(d.p1, d.t), rest = d.t - d.p1;
+      return `<tr><td>${esc(d.week)}</td><td>${esc(d.facility)}</td><td>${esc(d.start)}〜${esc(d.end)}</td><td>${esc(d.status)}</td>`+
+        `<td class="num">${d.t.toLocaleString()}</td><td class="num">${d.p1.toLocaleString()}</td><td class="num">${d.p2.toLocaleString()}</td>`+
+        `<td class="num">${d.card.toLocaleString()}</td><td class="num">${d.hk.toLocaleString()}</td>`+
+        `<td class="num ${rateCls(r)}"><b>${fmt(r)}</b></td>`+
+        `<td class="num ${d.t<=0?'':rest>0?'ng':'ok'}">${d.t<=0?'-':rest>0?rest.toLocaleString():'達成'}</td>`+
+        `<td>${esc(d.pace)}</td></tr>`;
+    }).join('')+'</tbody></table>';
+}
+function renderDirectorSummary(data){
+  const tb = document.querySelector('#directorSummary tbody');
+  if(!tb) return;
+  const g = aggBy(data,'director');
+  const keys = Object.keys(g).sort((a,b)=>a.localeCompare(b,'ja'));
+  const cells = (label, v)=>{
+    const r = pct(v.p1, v.t);
+    return `<td>${label}</td><td class="num">${v.cnt}</td><td class="num">${v.t.toLocaleString()}</td>`+
+      `<td class="num">${v.p1.toLocaleString()}</td><td class="num">${v.p2.toLocaleString()}</td>`+
+      `<td class="num">${v.card.toLocaleString()}</td><td class="num">${v.hk.toLocaleString()}</td>`+
+      `<td class="num ${restCls(v)}">${restText(v)}</td>`+
+      `<td class="num ${rateCls(r)}"><b>${fmt(r)}</b></td><td>${barHtml(r)}</td>`;
+  };
+  tb.innerHTML = keys.map(k=>{
+    const v = g[k], open = openDirectors.has(k);
+    const head = `<span class="dir-toggle">${open?'▼':'▶'}</span>${esc(k)}`;
+    let html = `<tr class="dir-row" data-dir="${esc(k)}">${cells(head, v)}</tr>`;
+    if(open) html += `<tr class="dir-detail"><td colspan="10">${directorDetailHtml(v)}</td></tr>`;
+    return html;
+  }).join('');
+  tb.querySelectorAll('tr.dir-row').forEach(tr=>{ tr.onclick = ()=>toggleDirector(tr.dataset.dir); });
+  document.querySelector('#directorSummary tfoot').innerHTML =
+    keys.length ? `<tr>${cells('合計', aggAll(data))}</tr>` : '';
+}
+
+// ディレクター×週のクロス集計
+function renderDirWeekMatrix(data){
+  const table = document.getElementById('dirWeekMatrix');
+  if(!table) return;
+  const weeks = [...new Set(data.map(d=>d.week))].sort(weekSort);
+  const dirs  = [...new Set(data.map(d=>d.director))].sort((a,b)=>a.localeCompare(b,'ja'));
+  const m = {};
+  data.forEach(d=>{ const k = d.director+' '+d.week; (m[k] = m[k] || newAgg()); addAgg(m[k], d); });
+  const cell = v=>{
+    if(!v) return '<td class="mx zero">-</td>';
+    const r = pct(v.p1, v.t);
+    return `<td class="mx"><span class="mx-rate ${rateCls(r)}">${fmt(r)||'-'}</span><br>`+
+      `<span class="mx-num">${v.p1.toLocaleString()} / ${v.t.toLocaleString()}</span></td>`;
+  };
+  table.querySelector('thead').innerHTML = dirs.length
+    ? '<tr><th>ディレクター</th>'+weeks.map(w=>`<th>${esc(w)}</th>`).join('')+'<th>計</th></tr>' : '';
+  table.querySelector('tbody').innerHTML = dirs.map(dir=>{
+    const tot = newAgg();
+    data.filter(d=>d.director===dir).forEach(d=>addAgg(tot,d));
+    return `<tr><td>${esc(dir)}</td>`+
+      weeks.map(w=>cell(m[dir+' '+w])).join('')+cell(tot)+'</tr>';
+  }).join('');
+}
+
+function renderSummaries(){
+  const data = summaryRows();
+  renderWeekCards(data);
+  renderWeekSummary(data);
+  renderDirectorSummary(data);
+  renderDirWeekMatrix(data);
+  renderBranchSummary(data);
 }
 
 // 概観: 本日実施中のイベントを大きく表示（現場スタッフが開いてすぐ状況が分かるように）
@@ -1571,9 +1778,7 @@ function updateAll(){
     ovCpaVerdict.textContent = '請求額未入力'; ovCpaVerdict.className = 'kpi-sub';
   }
 
-  groupSummary('directorSummary', DIRECTOR_IDX, true);
-  groupSummary('branchSummary', 4);
-  groupSummary('weekSummary', 1);
+  renderSummaries();
   refreshDirectorNames();
 }
 
