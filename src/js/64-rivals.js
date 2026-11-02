@@ -49,12 +49,13 @@ function renderRivals(){
   const agents = [...new Set(d.rows.map(r=>r[6]).filter(v=>v && v!=='-'))].sort();
   months.forEach(v=>rvMonth.add(new Option(v,v)));
   agents.forEach(v=>rvAgent.add(new Option(v,v)));
+  [...new Set(d.rows.map(r=>r[7]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ja')).forEach(v=>rvFacility.add(new Option(v,v)));
 }
 function applyRivalsFilter(){
-  const m = rvMonth.value, a = rvAgent.value;
+  const m = rvMonth.value, a = rvAgent.value, f = rvFacility.value;
   document.querySelectorAll('#rivalsDetail tbody tr').forEach(tr=>{
     const c = tr.children;
-    tr.style.display = ((!m || c[0].textContent===m) && (!a || c[6].textContent===a)) ? '' : 'none';
+    tr.style.display = ((!m || c[0].textContent===m) && (!a || c[6].textContent===a) && (!f || c[7].textContent===f)) ? '' : 'none';
   });
 }
 
