@@ -291,6 +291,8 @@
   #claimsTable td{min-width:90px;}
   #claimsTable tr.claim-pending td{background:#fdecea !important;}
   /* 連携情報（連絡先）*/
+  th.rv-sortable{cursor:pointer;user-select:none;}
+  th.rv-sortable:hover{text-decoration:underline;}
   table.pre-wrap-table{white-space:normal;}
   table.pre-wrap-table td{white-space:pre-wrap;vertical-align:top;line-height:1.5;}
   table.pre-wrap-table td[contenteditable]:focus{white-space:pre-wrap;}
