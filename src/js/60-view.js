@@ -82,6 +82,7 @@ const ACTIVE_TAB_KEY = 'event-ledger-active-tab';
 function switchTab(name){
   document.querySelectorAll('.tab-panel').forEach(p=>{ p.classList.toggle('tab-hidden', p.id!=='tab-'+name); });
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  if(name==='rivals') renderRivals();
   try{ localStorage.setItem(ACTIVE_TAB_KEY, name); }catch(e){}
 }
 function initTab(){
