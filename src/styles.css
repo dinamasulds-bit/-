@@ -24,7 +24,7 @@
   .app-header{position:sticky;top:0;z-index:20;background:rgba(238,241,246,.9);backdrop-filter:blur(8px);
     padding:14px 0 0;margin:-18px -20px 18px;padding-left:20px;padding-right:20px;border-bottom:1px solid var(--border);}
   .app-header-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-bottom:12px;}
-  .tabs{display:flex;gap:4px;padding-bottom:0;}
+  .tabs{display:flex;flex-wrap:wrap;gap:4px;padding-bottom:0;}
   .tab-btn{appearance:none;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:600;
     padding:9px 18px;border-radius:9px 9px 0 0;cursor:pointer;position:relative;top:1px;
     transition:color .15s,background .15s;}
