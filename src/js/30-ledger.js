@@ -317,10 +317,10 @@ function setPace(c, td){
   else if(ratio<80) td.classList.add('ng');
 }
 
-function hsPt(r){ if(r===null)return 0; if(r>=120)return 12; if(r>=100)return 10; if(r>=80)return 8; return 0; }
-const HS_TIERS = [{pct:80,pt:8},{pct:100,pt:10},{pct:120,pt:12}];
-function cardPt(r,down){ if(r===null)return 0; let p = r>=15?4 : r>=10?2 : 0; if(down) p = p===4?2:0; return p; }
-function hikariPt(r,down){ if(r===null)return 0; let p = r>=20?4 : r>=15?2 : 0; if(down) p = p===4?2:0; return p; }
+// 評価ポイントの基準は 04-eval-rules.js（月ごとに2Q/3Qで切替）
+function hsPt(r){ return tierPt(r, evalRules().hsTiers); }
+function cardPt(r,down){ return tierPt(r, evalRules().cardTiers, down); }
+function hikariPt(r,down){ return tierPt(r, evalRules().hikariTiers, down); }
 
 function barHtml(rate){
   if(rate===null) return '';

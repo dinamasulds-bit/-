@@ -453,13 +453,7 @@
 </div><!-- /tab-overview -->
 
 <div class="tab-panel tab-hidden" id="tab-ledger">
-<div class="rules">
-  <b>●HS新規</b>：PI、純粋新規　※ドコモのMVNOはカウント対象外　※<b>委託先評価は当日成約（PI即日）のみ対象</b>。同点の場合は後日含み実績を参考<br>
-  <b>●ドコモ光PI同日付帯率</b>：ドコモ光+home5G獲得数 ／ PI獲得世帯数（委託先申告）　※<span class="warn">申告数とALADIN実績に乖離がある場合、加点ポイント1ランクダウン</span><br>
-  <b>●加点</b>：HS新規達成率 120%以上=12pt / 100%以上=10pt / 80%以上=8pt　｜　dカード付帯率 15%以上=4pt / 10%以上=2pt　｜　光付帯率 20%以上=4pt / 15%以上=2pt<br>
-  <b>●減点</b>：法令違反等=次月以降契約なし / 催事回数制限・出禁=-4pt / 書面提出・返金事案=-3pt / 口頭注意・報告物遅延=-1pt / その他 都度判断<br>
-  <b>●継続判定</b>：委託先評価 足切り24pt ／ CPA 足切り50,000円/件（目標4万円/件）。<span class="warn">どちらか片方でも足切り未達=契約終了</span>
-</div>
+<div class="rules" id="rulesBox"></div>
 
 <div class="toolbar">
   <label>週: <select id="fWeek" onchange="applyFilter()"><option value="">全て</option></select></label>
@@ -551,38 +545,42 @@
 
 <div class="tab-panel tab-hidden" id="tab-eval">
 <h2>委託先評価サマリ（全行集計・月次）</h2>
+<div class="sub" id="evPeriodNote" style="display:none;"></div>
 <div class="panel">
   <div class="card">
     <h3>加点ポイント</h3>
     <div class="row"><span>HS新規達成率（即日/目標）</span><span class="v" id="evHsRate">-</span></div>
-    <div class="row"><span>→ ポイント（120%↑12pt / 100%↑10pt / 80%↑8pt）</span><span class="v pt" id="evHsPt">-</span></div>
+    <div class="row"><span id="evHsPtLabel">→ ポイント</span><span class="v pt" id="evHsPt">-</span></div>
     <div class="row"><span>dカード付帯率（カード/PI即日）</span><span class="v" id="evCardRate">-</span></div>
-    <div class="row"><span>→ ポイント（15%↑4pt / 10%↑2pt）</span><span class="v pt" id="evCardPt">-</span></div>
+    <div class="row"><span id="evCardPtLabel">→ ポイント</span><span class="v pt" id="evCardPt">-</span></div>
     <div class="row"><span>光PI同日付帯率（光+home5G/PI世帯数）</span><span class="v" id="evHikariRate">-</span></div>
-    <div class="row"><span>→ ポイント（20%↑4pt / 15%↑2pt）</span><span class="v pt" id="evHikariPt">-</span></div>
+    <div class="row"><span id="evHikariPtLabel">→ ポイント</span><span class="v pt" id="evHikariPt">-</span></div>
   </div>
   <div class="card">
     <h3>付帯率 目標獲得数（自動算出）</h3>
     <div class="row"><span><b>dカード</b>（PI即日比・現在 <span id="tgCardNow">-</span>件）</span><span></span></div>
-    <div class="row"><span>　2pt（10%）に必要</span><span class="v" id="tgCard10">-</span></div>
-    <div class="row"><span>　4pt（15%）に必要</span><span class="v" id="tgCard15">-</span></div>
+    <div class="row"><span id="tgCard10Label">　2pt（10%）に必要</span><span class="v" id="tgCard10">-</span></div>
+    <div class="row"><span id="tgCard15Label">　4pt（15%）に必要</span><span class="v" id="tgCard15">-</span></div>
     <div class="row" style="border-top:1px solid #eee;margin-top:4px;padding-top:4px;"><span><b>光+home5G</b>（PI世帯数比・現在 <span id="tgHikariNow">-</span>件）</span><span></span></div>
-    <div class="row"><span>　2pt（15%）に必要</span><span class="v" id="tgHikari15">-</span></div>
-    <div class="row"><span>　4pt（20%）に必要</span><span class="v" id="tgHikari20">-</span></div>
+    <div class="row"><span id="tgHikari15Label">　2pt（15%）に必要</span><span class="v" id="tgHikari15">-</span></div>
+    <div class="row"><span id="tgHikari20Label">　4pt（20%）に必要</span><span class="v" id="tgHikari20">-</span></div>
   </div>
   <div class="card">
     <h3>減点・合計</h3>
-    <div class="row"><span>減点（インシデント）</span><span><input type="number" id="evMinus" value="0" min="0" oninput="updateAll();saveAll()"> pt</span></div>
-    <div class="row"><span>ALADIN乖離（付帯率1ランクダウン）</span><span><label><input type="checkbox" id="evAladinCard" onchange="updateAll();saveAll()" style="width:auto">dカード</label>　<label><input type="checkbox" id="evAladinHikari" onchange="updateAll();saveAll()" style="width:auto">光</label></span></div>
+    <div class="row"><span id="evMinusLabel">減点（インシデント）</span><span><input type="number" id="evMinus" value="0" min="0" oninput="updateAll();saveAll()"> pt</span></div>
+    <div class="row" id="evAladinRow"><span>ALADIN乖離（付帯率1ランクダウン）</span><span><label><input type="checkbox" id="evAladinCard" onchange="updateAll();saveAll()" style="width:auto">dカード</label>　<label><input type="checkbox" id="evAladinHikari" onchange="updateAll();saveAll()" style="width:auto">光</label></span></div>
+    <div class="sub" id="evIncidentHint" style="display:none;margin:2px 0 6px;font-size:12px;"></div>
+    <div class="row" id="evEventPenaltyRow" style="display:none;"><span>【開催毎】HS新規未達ペナルティ（自動）</span><span class="v pt" id="evEventPenalty">0pt</span></div>
+    <div class="sub" id="evEventPenaltyList" style="display:none;margin:2px 0 6px;font-size:12px;"></div>
     <div class="row" style="border-top:1px solid #ccc;margin-top:6px;padding-top:6px;"><span><b>委託先評価 合計</b></span><span class="v pt" id="evTotalPt">-</span></div>
     <div class="verdict" id="evPtVerdict">足切り基準: 24pt</div>
   </div>
   <div class="card">
-    <h3>CPA（7-8月合計が評価対象）</h3>
+    <h3 id="evCpaTitle">CPA（7-8月合計が評価対象）</h3>
     <div class="row"><span>ご請求額（WS等支社依頼費用は除く）</span><span><input type="number" id="evBilling" value="" placeholder="円" oninput="updateAll();saveAll()"> 円</span></div>
     <div class="row"><span>HS新規実績（当日成約 ΣHS即日）</span><span class="v" id="evHsCount">-</span></div>
     <div class="row"><span><b>CPA（請求額/件）</b></span><span class="v pt" id="evCpa">-</span></div>
-    <div class="row"><span>目標: 40,000円/件　足切り: 50,000円/件</span><span></span></div>
+    <div class="row"><span id="evCpaRule">目標: 40,000円/件　足切り: 50,000円/件</span><span></span></div>
     <div class="verdict" id="evCpaVerdict">請求額を入力</div>
   </div>
 </div>
@@ -933,42 +931,43 @@ registerMonth({
 /* ---- src/data/2026-10.js ---- */
 // 2026年10月のデータ。
 // 会場=「【委託先展開用】10月会場一覧（09_25）」ルーデンス担当分28件を取込。
-// 目標値・休日/日・平日/日は目標値xlsx未受領のため空欄（後日「0828【展開用】〜」相当ファイル受領後に追記）。
+// 目標値・休日/日・平日/日=「【展開用】10月委託先目標値_20261002」（スペース別日当たり計画値）より取込。
+// 目標値 = 平日日数×平日/日 + 休日日数(土日祝)×休日/日（10/12はスポーツの日）。
 registerMonth({
   key: '2026-10',
   label: '2026年10月',
   roomSuffix: '-10',
   ledger: [
-  ["1W", "17", "ランクA", "神）神奈川支店", "トレッサ横浜", "2F", "北棟西通路①", "2F", "フラワーガーデン前（柱間）", "9/30：フラワーガーデン前（柱間）、10/1-4：北棟西通路①", "大", "30", "13.5", "9月30日", "10月4日", "5", "ぷくぷくシール", "ルーデンス", "", "", ""],
-  ["2W", "18", "ランクA", "神）神奈川支店", "トレッサ横浜", "1F", "ソレイユ広場", "", "", "10/8-10ソレイユ広場、10/11-12北棟リヨン広場", "小", "14.85", "", "10月8日", "10月12日", "5", "", "ルーデンス", "", "", ""],
-  ["3W", "19", "ランクA", "神）神奈川支店", "トレッサ横浜", "2F", "フラワーガーデン前（柱間）", "", "", "", "小", "13.5", "", "10月14日", "10月18日", "5", "", "ルーデンス", "", "", ""],
-  ["4W", "20", "ランクA", "神）神奈川支店", "トレッサ横浜", "1F", "ソレイユ広場", "", "", "", "小", "14.85", "", "10月21日", "10月25日", "5", "", "ルーデンス", "", "", ""],
-  ["1W", "21", "ランクA", "神）神奈川支店", "ららぽーと海老名", "3F", "3-⑥東側エスカレーター前", "", "", "", "中", "27", "", "9月30日", "10月4日", "5", "", "ルーデンス", "", "", ""],
-  ["3W", "23", "ランクA", "神）神奈川支店", "ららぽーと海老名", "4F", "4-②西側エスカレーター前", "", "", "", "中", "19", "", "10月14日", "10月18日", "5", "", "ルーデンス", "", "", ""],
-  ["4W", "24", "ランクA", "神）神奈川支店", "ららぽーと海老名", "4F", "4-②西側エスカレーター前", "", "", "", "中", "19", "", "10月21日", "10月25日", "5", "", "ルーデンス", "", "", ""],
-  ["1W", "37", "ランクB", "千）千葉支店", "アリオ蘇我", "1F", "②1Fアリオモールエスカレータ前（+ABCマート前※HP記載ナシ）", "", "", "", "中", "18", "", "10月3日", "10月4日", "2", "", "ルーデンス", "", "", ""],
-  ["2W", "38", "ランクB", "千）千葉支店", "アリオ蘇我", "2F", "⑨2Fアリオモールエスカレータ前", "", "", "", "中", "23", "", "10月10日", "10月12日", "3", "", "ルーデンス", "", "", ""],
-  ["3W", "39", "ランクB", "千）千葉支店", "アリオ蘇我", "1F", "サンコートイベント広場", "", "", "", "特大", "99", "", "10月17日", "10月18日", "2", "恐竜（大）", "ルーデンス", "", "", ""],
-  ["4W", "40", "ランクB", "千）千葉支店", "アリオ蘇我", "2F", "⑨2Fアリオモールエスカレータ前", "", "", "", "中", "23", "", "10月24日", "10月25日", "2", "", "ルーデンス", "", "", ""],
-  ["1W", "53", "ランクB", "千）千葉支店", "イオンモール成田", "2F", "イベントスペースO（プラサカプコン前）", "", "", "", "中", "16.2", "", "10月3日", "10月4日", "2", "", "ルーデンス", "", "", ""],
-  ["2W", "54", "ランクB", "千）千葉支店", "イオンモール成田", "1F", "うなりくん広場", "", "", "", "特大", "125.63", "", "10月10日", "10月12日", "3", "アクスタ", "ルーデンス", "", "", ""],
-  ["3W", "55", "ランクB", "千）千葉支店", "イオンモール成田", "2F", "ホビーゾーン前（ブリッジスペースD）", "", "", "", "中", "17.6", "", "10月17日", "10月18日", "2", "", "ルーデンス", "", "", ""],
-  ["1W", "61", "ランクB", "多）多摩支店", "イオンモール多摩平の森", "3F", "ダイソー前", "", "", "", "小", "7.5", "", "10月3日", "10月4日", "2", "", "ルーデンス", "", "", ""],
-  ["2W", "62", "ランクB", "多）多摩支店", "イオンモール多摩平の森", "2F", "2F無印良品前", "", "", "", "中", "20", "", "10月10日", "10月12日", "3", "", "ルーデンス", "", "", ""],
-  ["3W", "63", "ランクB", "多）多摩支店", "イオンモール多摩平の森", "2F", "2F無印良品前", "", "", "", "中", "20", "", "10月17日", "10月18日", "2", "", "ルーデンス", "", "", ""],
-  ["4W", "64", "ランクB", "多）多摩支店", "イオンモール多摩平の森", "1F", "1Fセンターコート", "", "", "", "大", "42.5", "", "10月24日", "10月25日", "2", "アクスタ", "ルーデンス", "", "", ""],
-  ["2W", "78", "ランクB", "千）千葉支店", "ユニモちはら台", "2F", "ダイソー前", "", "", "", "小", "10", "", "10月10日", "10月12日", "3", "", "ルーデンス", "", "", ""],
-  ["3W", "79", "ランクB", "千）千葉支店", "ユニモちはら台", "2F", "丸善前", "", "", "", "小", "10", "", "10月17日", "10月18日", "2", "", "ルーデンス", "", "", ""],
-  ["4W", "80", "ランクB", "千）千葉支店", "ユニモちはら台", "2F", "ダイソー前", "", "", "", "小", "10", "", "10月24日", "10月25日", "2", "", "ルーデンス", "", "", ""],
-  ["1W", "81", "ランクB", "神）神奈川支店", "ららぽーと横浜", "2F", "2階ノースストレート（ノースコート側）", "", "", "", "小", "12", "", "10月3日", "10月4日", "2", "", "ルーデンス", "", "", ""],
-  ["2W", "82", "ランクB", "神）神奈川支店", "ららぽーと横浜", "2F", "2階ノースストレート（ノースコート側）", "", "", "", "小", "12", "", "10月10日", "10月12日", "3", "", "ルーデンス", "", "", ""],
-  ["3W", "83", "ランクB", "神）神奈川支店", "ららぽーと横浜", "2F", "ノースカーブモール入口", "", "", "", "中", "24.5", "", "10月17日", "10月18日", "2", "", "ルーデンス", "", "", ""],
-  ["4W", "84", "ランクB", "神）神奈川支店", "ららぽーと横浜", "2F", "ノースカーブモール入口", "", "", "", "中", "24.5", "", "10月24日", "10月25日", "2", "", "ルーデンス", "", "", ""],
-  ["4W", "92", "ランクC", "多）多摩支店", "イオンモールむさし村山", "3F", "3階センターブリッジ（ムラサキスポーツ前）", "", "", "", "中", "19.84", "", "10月24日", "10月25日", "2", "", "ルーデンス", "", "", ""],
-  ["2W", "99", "ランクC", "千）千葉支店", "テラスモール松戸", "1F", "パティオ", "", "", "", "特大", "136", "", "10月10日", "10月12日", "3", "", "ルーデンス", "", "", ""],
-  ["1W", "131", "ランクC", "神）神奈川支店", "横浜そごう", "B2F", "地下２F 新都市プラザ", "", "", "", "大", "35.6", "", "10月3日", "10月4日", "2", "", "ルーデンス", "", "", ""],
+  ["1W", "17", "ランクA", "神）神奈川支店", "トレッサ横浜", "2F", "北棟西通路①", "2F", "フラワーガーデン前（柱間）", "9/30：フラワーガーデン前（柱間）、10/1-4：北棟西通路①", "大", "30", "13.5", "9月30日", "10月4日", "5", "ぷくぷくシール", "ルーデンス", "39", "12", "5"],
+  ["2W", "18", "ランクA", "神）神奈川支店", "トレッサ横浜", "1F", "ソレイユ広場", "", "", "10/8-10ソレイユ広場、10/11-12北棟リヨン広場", "小", "14.85", "", "10月8日", "10月12日", "5", "", "ルーデンス", "70", "20", "5"],
+  ["3W", "19", "ランクA", "神）神奈川支店", "トレッサ横浜", "2F", "フラワーガーデン前（柱間）", "", "", "", "小", "13.5", "", "10月14日", "10月18日", "5", "", "ルーデンス", "47", "16", "5"],
+  ["4W", "20", "ランクA", "神）神奈川支店", "トレッサ横浜", "1F", "ソレイユ広場", "", "", "", "小", "14.85", "", "10月21日", "10月25日", "5", "", "ルーデンス", "55", "20", "5"],
+  ["1W", "21", "ランクA", "神）神奈川支店", "ららぽーと海老名", "3F", "3-⑥東側エスカレーター前", "", "", "", "中", "27", "", "9月30日", "10月4日", "5", "", "ルーデンス", "37", "14", "3"],
+  ["3W", "23", "ランクA", "神）神奈川支店", "ららぽーと海老名", "4F", "4-②西側エスカレーター前", "", "", "", "中", "19", "", "10月14日", "10月18日", "5", "", "ルーデンス", "29", "10", "3"],
+  ["4W", "24", "ランクA", "神）神奈川支店", "ららぽーと海老名", "4F", "4-②西側エスカレーター前", "", "", "", "中", "19", "", "10月21日", "10月25日", "5", "", "ルーデンス", "29", "10", "3"],
+  ["1W", "37", "ランクB", "千）千葉支店", "アリオ蘇我", "1F", "②1Fアリオモールエスカレータ前（+ABCマート前※HP記載ナシ）", "", "", "", "中", "18", "", "10月3日", "10月4日", "2", "", "ルーデンス", "28", "14", "3"],
+  ["2W", "38", "ランクB", "千）千葉支店", "アリオ蘇我", "2F", "⑨2Fアリオモールエスカレータ前", "", "", "", "中", "23", "", "10月10日", "10月12日", "3", "", "ルーデンス", "33", "11", "3"],
+  ["3W", "39", "ランクB", "千）千葉支店", "アリオ蘇我", "1F", "サンコートイベント広場", "", "", "", "特大", "99", "", "10月17日", "10月18日", "2", "恐竜（大）", "ルーデンス", "34", "17", "5"],
+  ["4W", "40", "ランクB", "千）千葉支店", "アリオ蘇我", "2F", "⑨2Fアリオモールエスカレータ前", "", "", "", "中", "23", "", "10月24日", "10月25日", "2", "", "ルーデンス", "22", "11", "3"],
+  ["1W", "53", "ランクB", "千）千葉支店", "イオンモール成田", "2F", "イベントスペースO（プラサカプコン前）", "", "", "", "中", "16.2", "", "10月3日", "10月4日", "2", "", "ルーデンス", "20", "10", "3"],
+  ["2W", "54", "ランクB", "千）千葉支店", "イオンモール成田", "1F", "うなりくん広場", "", "", "", "特大", "125.63", "", "10月10日", "10月12日", "3", "アクスタ", "ルーデンス", "48", "16", "5"],
+  ["3W", "55", "ランクB", "千）千葉支店", "イオンモール成田", "2F", "ホビーゾーン前（ブリッジスペースD）", "", "", "", "中", "17.6", "", "10月17日", "10月18日", "2", "", "ルーデンス", "20", "10", "3"],
+  ["1W", "61", "ランクB", "多）多摩支店", "イオンモール多摩平の森", "3F", "ダイソー前", "", "", "", "小", "7.5", "", "10月3日", "10月4日", "2", "", "ルーデンス", "10", "5", "3"],
+  ["2W", "62", "ランクB", "多）多摩支店", "イオンモール多摩平の森", "2F", "2F無印良品前", "", "", "", "中", "20", "", "10月10日", "10月12日", "3", "", "ルーデンス", "39", "13", "3"],
+  ["3W", "63", "ランクB", "多）多摩支店", "イオンモール多摩平の森", "2F", "2F無印良品前", "", "", "", "中", "20", "", "10月17日", "10月18日", "2", "", "ルーデンス", "26", "13", "3"],
+  ["4W", "64", "ランクB", "多）多摩支店", "イオンモール多摩平の森", "1F", "1Fセンターコート", "", "", "", "大", "42.5", "", "10月24日", "10月25日", "2", "アクスタ", "ルーデンス", "32", "16", "5"],
+  ["2W", "78", "ランクB", "千）千葉支店", "ユニモちはら台", "2F", "ダイソー前", "", "", "", "小", "10", "", "10月10日", "10月12日", "3", "", "ルーデンス", "33", "11", "3"],
+  ["3W", "79", "ランクB", "千）千葉支店", "ユニモちはら台", "2F", "丸善前", "", "", "", "小", "10", "", "10月17日", "10月18日", "2", "", "ルーデンス", "20", "10", "3"],
+  ["4W", "80", "ランクB", "千）千葉支店", "ユニモちはら台", "2F", "ダイソー前", "", "", "", "小", "10", "", "10月24日", "10月25日", "2", "", "ルーデンス", "22", "11", "3"],
+  ["1W", "81", "ランクB", "神）神奈川支店", "ららぽーと横浜", "2F", "2階ノースストレート（ノースコート側）", "", "", "", "小", "12", "", "10月3日", "10月4日", "2", "", "ルーデンス", "26", "13", "3"],
+  ["2W", "82", "ランクB", "神）神奈川支店", "ららぽーと横浜", "2F", "2階ノースストレート（ノースコート側）", "", "", "", "小", "12", "", "10月10日", "10月12日", "3", "", "ルーデンス", "39", "13", "3"],
+  ["3W", "83", "ランクB", "神）神奈川支店", "ららぽーと横浜", "2F", "ノースカーブモール入口", "", "", "", "中", "24.5", "", "10月17日", "10月18日", "2", "", "ルーデンス", "26", "13", "7"],
+  ["4W", "84", "ランクB", "神）神奈川支店", "ららぽーと横浜", "2F", "ノースカーブモール入口", "", "", "", "中", "24.5", "", "10月24日", "10月25日", "2", "", "ルーデンス", "26", "13", "7"],
+  ["4W", "92", "ランクC", "多）多摩支店", "イオンモールむさし村山", "3F", "3階センターブリッジ（ムラサキスポーツ前）", "", "", "", "中", "19.84", "", "10月24日", "10月25日", "2", "", "ルーデンス", "20", "10", "3"],
+  ["2W", "99", "ランクC", "千）千葉支店", "テラスモール松戸", "1F", "パティオ", "", "", "", "特大", "136", "", "10月10日", "10月12日", "3", "", "ルーデンス", "48", "16", "5"],
+  ["1W", "131", "ランクC", "神）神奈川支店", "横浜そごう", "B2F", "地下２F 新都市プラザ", "", "", "", "大", "35.6", "", "10月3日", "10月4日", "2", "", "ルーデンス", "24", "12", "5"],
   ],
-    contacts: [["1W", "", "トレッサ横浜", "9月30日", "10月4日", "神）ドコモショップトレッサ横浜店", "神）ドコモショップ綱島店", "神）ドコモショップ横浜モアーズ店", "鈴木宏幸", "神奈川支店営業部", "090-1425-0883", "hiroyuki.suzuki.fg@nttdocomo.com", "", "", "", "", ""], ["1W", "", "ららぽーと海老名", "10月3日", "10月4日", "神）ドコモショップ海老名西口店", "神）ドコモショップ久里浜店", "", "荒井、横山", "営業部", "090-2170-0829", "ayaka.arai.cy@nttdocomo.com\ntae.takayama.kd@nttdocomo.com\nikemoto@nttdocomo.com", "山﨑店長", "ドコモショップ海老名西口店", "090-7198-7193", "m-yamazaki@t-gaia.co.jp", "ヘルパーからのルートへの連絡は荒井\nそれ以外の各種依頼やリマインド等の連絡は横山"], ["1W", "", "アリオ蘇我", "10月3日", "10月4日", "千）ドコモショップ　市原店", "千）ドコモショップアリオ蘇我店", "", "植草めぐみ", "千葉支店　営業部", "090-9014-2226", "megumi.uekusa.hg@nttdocomo.com\nchiba_eigyou_nakata-ml@ml.nttdocomo.com", "佐藤店長", "アリオ蘇我店", "090-5449-0633", "sato.h@takahatacom.co.jp", ""], ["1W", "", "イオンモール成田", "10月3日", "10月4日", "千）ドコモショップ成田土屋店", "千）ドコモショップ富里店", "神）ドコモショップ戸塚深谷店", "鶴田　諒", "千葉支店　営業部", "080-1012-4772", "ryo.tsuruda.rp@nttdocomo.com", "金澤店長", "富里店", "090-7880-2966", "megumi.kanazawa@ranet.co.jp", ""], ["1W", "", "イオンモール多摩平の森", "10月3日", "10月4日", "多）ドコモショップイオンモール多摩平の森店", "多）ドコモショップ京王聖蹟桜ヶ丘店", "多）ドコモショップ高幡不動店", "木枝、小澤、平井", "多摩支店　営業部", "090-7384-3015", "tama-sales_team1-ml@ml.nttdocomo.com", "", "", "", "", ""], ["1W", "", "ららぽーと横浜", "10月3日", "10月4日", "神）ドコモショップららぽーと横浜店", "", "", "山内、横山", "営業部", "090-3238-9824", "yamauchiko@nttdocomo.com\nikemoto@nttdocomo.com\ntae.takayama.kd@nttdocomo.com", "大政副店長\n湯川店長\n小林副店長\n金城副店長", "ドコモショップららぽーと横浜店", "080-8411-7867\n080-7882-8279\n090-4027-5594\n090-3071-0539", "omasa-y@mxmobiling.com\nyukawa-st@mxmobiling.com\nkobayashi-tky@mxmobiling.com\nkinjyou-m@mxmobiling.com", "ヘルパーからのルートへの連絡は山内\nそれ以外の各種依頼やリマインド等の連絡は横山"], ["1W", "", "横浜そごう", "10月3日", "10月4日", "神）ドコモショップ　横浜そごう店", "", "", "齋藤/坂上", "神奈川支店営業部営業担当", "\t090-1115-3814/\t080-2908-1942", "\thikaru.saitou.be@s1.nttdocomo.com/yuuki.sakaue.ph@nttdocomo.com", "新垣店長", "横浜そごう店", "090-3315-1164", "ds.yokohama-t@itx-corp.co.jp", ""], ["2W", "", "トレッサ横浜", "10月8日", "10月12日", "神）ドコモショップトレッサ横浜店", "神）ドコモショップ綱島店", "神）ドコモショップ横浜モアーズ店", "鈴木宏幸", "神奈川支店営業部", "090-1425-0883", "hiroyuki.suzuki.fg@nttdocomo.com", "", "", "", "", ""], ["2W", "", "アリオ蘇我", "10月10日", "10月12日", "千）ドコモショップ　市原店", "千）ドコモショップアリオ蘇我店", "", "植草めぐみ", "千葉支店　営業部", "090-9014-2226", "megumi.uekusa.hg@nttdocomo.com\nchiba_eigyou_nakata-ml@ml.nttdocomo.com", "佐藤店長", "アリオ蘇我店", "090-5449-0633", "sato.h@takahatacom.co.jp", ""], ["2W", "", "イオンモール成田", "10月10日", "10月12日", "千）ドコモショップ成田土屋店", "千）ドコモショップ富里店", "神）ドコモショップ戸塚深谷店", "鶴田　諒", "千葉支店　営業部", "080-1012-4772", "ryo.tsuruda.rp@nttdocomo.com", "金澤店長", "富里店", "090-7880-2966", "megumi.kanazawa@ranet.co.jp", ""], ["2W", "", "イオンモール多摩平の森", "10月10日", "10月12日", "多）ドコモショップイオンモール多摩平の森店", "多）ドコモショップ京王聖蹟桜ヶ丘店", "多）ドコモショップ高幡不動店", "木枝、小澤、平井", "多摩支店　営業部", "090-7384-3015", "tama-sales_team1-ml@ml.nttdocomo.com", "", "", "", "", ""], ["2W", "", "ユニモちはら台", "10月10日", "10月12日", "千）ドコモショップ君津店", "千）ドコモショップ　松戸店", "", "井出　光俊\n藤川　奈々", "千葉支店　営業部", "090-7491-4353\n090-7115-6167", "mitsutoshi.ide.ax@nttdocomo.com\nnana.fujikawa.at@nttdocomo.com\nchiba_eigyou_nakata-ml@ml.nttdocomo.com", "◆松戸店：江口店長・山本副店長\n◆君津店：阿部店長・大西副店長", "松戸店・君津店", "◆松戸店：江口店長(080-9212-6817)・山本副店長(080-8726-2643)\n◆君津店：阿部店長(080-7702-4316)・大西副店長(070-4467-3265)", "◆松戸店：江口店長(eguchi-k@mxmobiling.com)・山本副店長(yamamoto-kj@mxmobiling.com)\n◆君津店：阿部店長(abe-d@mxmobiling.com)・大西副店長(oonishi-r@mxmobiling.com)", ""], ["2W", "", "ららぽーと横浜", "10月10日", "10月12日", "神）ドコモショップららぽーと横浜店", "", "", "山内、横山", "営業部", "090-3238-9824", "yamauchiko@nttdocomo.com\nikemoto@nttdocomo.com\ntae.takayama.kd@nttdocomo.com", "大政副店長\n湯川店長\n小林副店長\n金城副店長", "ドコモショップららぽーと横浜店", "080-8411-7867\n080-7882-8279\n090-4027-5594\n090-3071-0539", "omasa-y@mxmobiling.com\nyukawa-st@mxmobiling.com\nkobayashi-tky@mxmobiling.com\nkinjyou-m@mxmobiling.com", "ヘルパーからのルートへの連絡は山内\nそれ以外の各種依頼やリマインド等の連絡は横山"], ["2W", "", "テラスモール松戸", "10月10日", "10月12日", "千）ドコモショップ新松戸店", "千）ドコモショップ新八柱店", "", "井出　光俊\n藤川　奈々", "千葉支店　営業部", "090-7491-4353\n090-7115-6167", "mitsutoshi.ide.ax@nttdocomo.com\nnana.fujikawa.at@nttdocomo.com\nchiba_eigyou_nakata-ml@ml.nttdocomo.com", "", "", "", "", ""], ["3W", "", "トレッサ横浜", "10月14日", "10月18日", "神）ドコモショップトレッサ横浜店", "神）ドコモショップ綱島店", "神）ドコモショップ横浜モアーズ店", "鈴木宏幸", "神奈川支店営業部", "090-1425-0883", "hiroyuki.suzuki.fg@nttdocomo.com", "", "", "", "", ""], ["3W", "", "ららぽーと海老名", "10月17日", "10月18日", "神）ドコモショップ海老名西口店", "", "", "荒井、横山", "営業部", "090-2170-0829", "ayaka.arai.cy@nttdocomo.com\ntae.takayama.kd@nttdocomo.com\nikemoto@nttdocomo.com", "山﨑店長", "ドコモショップ海老名西口店", "090-7198-7193", "m-yamazaki@t-gaia.co.jp", "ヘルパーからのルートへの連絡は荒井\nそれ以外の各種依頼やリマインド等の連絡は横山"], ["3W", "", "アリオ蘇我", "10月17日", "10月18日", "千）ドコモショップ　市原店", "千）ドコモショップアリオ蘇我店", "", "植草めぐみ", "千葉支店　営業部", "090-9014-2226", "megumi.uekusa.hg@nttdocomo.com\nchiba_eigyou_nakata-ml@ml.nttdocomo.com", "佐藤店長", "アリオ蘇我店", "090-5449-0633", "sato.h@takahatacom.co.jp", ""], ["3W", "", "イオンモール成田", "10月17日", "10月18日", "千）ドコモショップ成田土屋店", "千）ドコモショップ富里店", "神）ドコモショップ戸塚深谷店", "鶴田　諒", "千葉支店　営業部", "080-1012-4772", "ryo.tsuruda.rp@nttdocomo.com", "金澤店長", "富里店", "090-7880-2966", "megumi.kanazawa@ranet.co.jp", ""], ["3W", "", "イオンモール多摩平の森", "10月17日", "10月18日", "多）ドコモショップイオンモール多摩平の森店", "多）ドコモショップ京王聖蹟桜ヶ丘店", "多）ドコモショップ高幡不動店", "木枝、小澤、平井", "多摩支店　営業部", "090-7384-3015", "tama-sales_team1-ml@ml.nttdocomo.com", "", "", "", "", ""], ["3W", "", "ユニモちはら台", "10月17日", "10月18日", "千）ドコモショップ君津店", "千）ドコモショップイオンモール船橋店", "", "井出　光俊\n藤川　奈々", "千葉支店　営業部", "090-7491-4353\n090-7115-6167", "mitsutoshi.ide.ax@nttdocomo.com\nnana.fujikawa.at@nttdocomo.com\nchiba_eigyou_nakata-ml@ml.nttdocomo.com", "◆君津店：阿部店長・大西副店長\n◆イオンモール船橋店：小山店長・俵田副店長・木原副店長", "君津店・イオンモール船橋店", "◆君津店：阿部店長(080-7702-4316)・大西副店長(070-4467-3265)\n◆イオンモール船橋店：小山店長(090-7844-7044)・俵田副店長(080-1170-0044)・木原副店長(070‐4203-1982)", "◆君津店：阿部店長(abe-d@mxmobiling.com)・大西副店長(oonishi-r@mxmobiling.com)\n◆イオンモール船橋店：小山店長(koyama-n@mxmobiling.com)・俵田副店長(tawarada-y@mxmobiling.com)・木原副店長(sh-kihara-h@mxmobiling.com)", ""], ["3W", "", "ららぽーと横浜", "10月17日", "10月18日", "神）ドコモショップららぽーと横浜店", "", "", "山内、横山", "営業部", "090-3238-9824", "yamauchiko@nttdocomo.com\nikemoto@nttdocomo.com\ntae.takayama.kd@nttdocomo.com", "大政副店長\n湯川店長\n小林副店長\n金城副店長", "ドコモショップららぽーと横浜店", "080-8411-7867\n080-7882-8279\n090-4027-5594\n090-3071-0539", "omasa-y@mxmobiling.com\nyukawa-st@mxmobiling.com\nkobayashi-tky@mxmobiling.com\nkinjyou-m@mxmobiling.com", "ヘルパーからのルートへの連絡は山内\nそれ以外の各種依頼やリマインド等の連絡は横山"], ["4W", "", "トレッサ横浜", "10月21日", "10月25日", "神）ドコモショップトレッサ横浜店", "神）ドコモショップ綱島店", "神）ドコモショップ横浜モアーズ店", "鈴木宏幸", "神奈川支店営業部", "090-1425-0883", "hiroyuki.suzuki.fg@nttdocomo.com", "", "", "", "", ""], ["4W", "", "ららぽーと海老名", "10月24日", "10月25日", "神）ドコモショップ海老名西口店", "", "", "荒井、横山", "営業部", "090-2170-0829", "ayaka.arai.cy@nttdocomo.com\ntae.takayama.kd@nttdocomo.com\nikemoto@nttdocomo.com", "山﨑店長", "ドコモショップ海老名西口店", "090-7198-7193", "m-yamazaki@t-gaia.co.jp", "ヘルパーからのルートへの連絡は荒井\nそれ以外の各種依頼やリマインド等の連絡は横山"], ["4W", "", "アリオ蘇我", "10月24日", "10月25日", "千）ドコモショップ　市原店", "千）ドコモショップアリオ蘇我店", "", "植草めぐみ", "千葉支店　営業部", "090-9014-2226", "megumi.uekusa.hg@nttdocomo.com\nchiba_eigyou_nakata-ml@ml.nttdocomo.com", "佐藤店長", "アリオ蘇我店", "090-5449-0633", "sato.h@takahatacom.co.jp", ""], ["4W", "", "イオンモール多摩平の森", "10月24日", "10月25日", "多）ドコモショップイオンモール多摩平の森店", "多）ドコモショップ京王聖蹟桜ヶ丘店", "多）ドコモショップ高幡不動店", "木枝、小澤、平井", "多摩支店　営業部", "090-7384-3015", "tama-sales_team1-ml@ml.nttdocomo.com", "", "", "", "", ""], ["4W", "", "ユニモちはら台", "10月24日", "10月25日", "千）ドコモショップ君津店", "千）ドコモショップユニモちはら台店", "", "井出　光俊\n藤川　奈々", "千葉支店　営業部", "090-7491-4353\n090-7115-6167", "mitsutoshi.ide.ax@nttdocomo.com\nnana.fujikawa.at@nttdocomo.com\nchiba_eigyou_nakata-ml@ml.nttdocomo.com", "◆君津店：阿部店長・大西副店長\n◆ユニモちはら台店：秀浦店長", "君津店・ユニモちはら台店", "◆君津店：阿部店長(080-7702-4316)・大西副店長(070-4467-3265)\n◆ユニモちはら台店：秀浦店長(080-2163-7997)", "◆君津店：阿部店長(abe-d@mxmobiling.com)・大西副店長(oonishi-r@mxmobiling.com)\n◆ユニモちはら台店：秀浦店長(hideura-a@mxmobiling.com)", ""], ["4W", "", "ららぽーと横浜", "10月24日", "10月25日", "神）ドコモショップららぽーと横浜店", "", "", "山内、横山", "営業部", "090-3238-9824", "yamauchiko@nttdocomo.com\nikemoto@nttdocomo.com\ntae.takayama.kd@nttdocomo.com", "大政副店長\n湯川店長\n小林副店長\n金城副店長", "ドコモショップららぽーと横浜店", "080-8411-7867\n080-7882-8279\n090-4027-5594\n090-3071-0539", "omasa-y@mxmobiling.com\nyukawa-st@mxmobiling.com\nkobayashi-tky@mxmobiling.com\nkinjyou-m@mxmobiling.com", "ヘルパーからのルートへの連絡は山内\nそれ以外の各種依頼やリマインド等の連絡は横山"], ["4W", "", "イオンモールむさし村山", "10月24日", "10月25日", "多）ドコモショップイオンモールむさし村山店", "多）ドコモショップ京王聖蹟桜ヶ丘店", "多）ドコモショップ高幡不動店", "木枝、小澤、平井", "多摩支店　営業部", "090-7384-3015", "tama-sales_team1-ml@ml.nttdocomo.com", "狩野店長", "DSイオンモールむさし村山店", "090-8727-4003", "taga@t-gaia.co.jp,makino@t-gaia.co.jp,yu-kano@t-gaia.co.jp,t-ishiguro@t-gaia.co.jp,urakawa@t-gaia.co.jp,r-kozakai@t-gaia.co.jp,chino@t-gaia.co.jp,sho-hashimoto@t-gaia.co.jp,hisano@t-gaia.co.jp,yamori@t-gaia.co.jp", ""]],
+    contacts: [["1W", "", "トレッサ横浜", "9月30日", "10月4日", "神）ドコモショップトレッサ横浜店", "神）ドコモショップ綱島店", "神）ドコモショップ横浜モアーズ店", "鈴木宏幸", "神奈川支店営業部", "090-1425-0883", "hiroyuki.suzuki.fg@nttdocomo.com", "成松店長", "ドコモショップトレッサ横浜店", "080-9281-1979", "y.narimatsu@kcs.ne.jp", "代理店欄は9月分を流用（要確認）"], ["1W", "", "ららぽーと海老名", "10月3日", "10月4日", "神）ドコモショップ海老名西口店", "神）ドコモショップ久里浜店", "", "荒井、横山", "営業部", "090-2170-0829", "ayaka.arai.cy@nttdocomo.com\ntae.takayama.kd@nttdocomo.com\nikemoto@nttdocomo.com", "山﨑店長", "ドコモショップ海老名西口店", "090-7198-7193", "m-yamazaki@t-gaia.co.jp", "ヘルパーからのルートへの連絡は荒井\nそれ以外の各種依頼やリマインド等の連絡は横山"], ["1W", "", "アリオ蘇我", "10月3日", "10月4日", "千）ドコモショップ　市原店", "千）ドコモショップアリオ蘇我店", "", "植草めぐみ", "千葉支店　営業部", "090-9014-2226", "megumi.uekusa.hg@nttdocomo.com\nchiba_eigyou_nakata-ml@ml.nttdocomo.com", "佐藤店長", "アリオ蘇我店", "090-5449-0633", "sato.h@takahatacom.co.jp", ""], ["1W", "", "イオンモール成田", "10月3日", "10月4日", "千）ドコモショップ成田土屋店", "千）ドコモショップ富里店", "神）ドコモショップ戸塚深谷店", "鶴田　諒", "千葉支店　営業部", "080-1012-4772", "ryo.tsuruda.rp@nttdocomo.com", "金澤店長", "富里店", "090-7880-2966", "megumi.kanazawa@ranet.co.jp", ""], ["1W", "", "イオンモール多摩平の森", "10月3日", "10月4日", "多）ドコモショップイオンモール多摩平の森店", "多）ドコモショップ京王聖蹟桜ヶ丘店", "多）ドコモショップ高幡不動店", "木枝、小澤、平井", "多摩支店　営業部", "090-7384-3015", "tama-sales_team1-ml@ml.nttdocomo.com", "石黒店長、牧野店長（補佐担当）", "DSイオンモール多摩平の森店、DS稲城矢野口店", "石黒：080-1176-3608,牧野（石黒店長に繋がらない場合）：070-4006-3575", "taga@t-gaia.co.jp,makino@t-gaia.co.jp,yu-kano@t-gaia.co.jp,t-ishiguro@t-gaia.co.jp,urakawa@t-gaia.co.jp,r-kozakai@t-gaia.co.jp,chino@t-gaia.co.jp,sho-hashimoto@t-gaia.co.jp,hisano@t-gaia.co.jp,yamori@t-gaia.co.jp", "代理店欄は7月分を流用（要確認）"], ["1W", "", "ららぽーと横浜", "10月3日", "10月4日", "神）ドコモショップららぽーと横浜店", "", "", "山内、横山", "営業部", "090-3238-9824", "yamauchiko@nttdocomo.com\nikemoto@nttdocomo.com\ntae.takayama.kd@nttdocomo.com", "大政副店長\n湯川店長\n小林副店長\n金城副店長", "ドコモショップららぽーと横浜店", "080-8411-7867\n080-7882-8279\n090-4027-5594\n090-3071-0539", "omasa-y@mxmobiling.com\nyukawa-st@mxmobiling.com\nkobayashi-tky@mxmobiling.com\nkinjyou-m@mxmobiling.com", "ヘルパーからのルートへの連絡は山内\nそれ以外の各種依頼やリマインド等の連絡は横山"], ["1W", "", "横浜そごう", "10月3日", "10月4日", "神）ドコモショップ　横浜そごう店", "", "", "齋藤/坂上", "神奈川支店営業部営業担当", "\t090-1115-3814/\t080-2908-1942", "\thikaru.saitou.be@s1.nttdocomo.com/yuuki.sakaue.ph@nttdocomo.com", "新垣店長", "横浜そごう店", "090-3315-1164", "ds.yokohama-t@itx-corp.co.jp", ""], ["2W", "", "トレッサ横浜", "10月8日", "10月12日", "神）ドコモショップトレッサ横浜店", "神）ドコモショップ綱島店", "神）ドコモショップ横浜モアーズ店", "鈴木宏幸", "神奈川支店営業部", "090-1425-0883", "hiroyuki.suzuki.fg@nttdocomo.com", "成松店長", "ドコモショップトレッサ横浜店", "080-9281-1979", "y.narimatsu@kcs.ne.jp", "代理店欄は9月分を流用（要確認）"], ["2W", "", "アリオ蘇我", "10月10日", "10月12日", "千）ドコモショップ　市原店", "千）ドコモショップアリオ蘇我店", "", "植草めぐみ", "千葉支店　営業部", "090-9014-2226", "megumi.uekusa.hg@nttdocomo.com\nchiba_eigyou_nakata-ml@ml.nttdocomo.com", "佐藤店長", "アリオ蘇我店", "090-5449-0633", "sato.h@takahatacom.co.jp", ""], ["2W", "", "イオンモール成田", "10月10日", "10月12日", "千）ドコモショップ成田土屋店", "千）ドコモショップ富里店", "神）ドコモショップ戸塚深谷店", "鶴田　諒", "千葉支店　営業部", "080-1012-4772", "ryo.tsuruda.rp@nttdocomo.com", "金澤店長", "富里店", "090-7880-2966", "megumi.kanazawa@ranet.co.jp", ""], ["2W", "", "イオンモール多摩平の森", "10月10日", "10月12日", "多）ドコモショップイオンモール多摩平の森店", "多）ドコモショップ京王聖蹟桜ヶ丘店", "多）ドコモショップ高幡不動店", "木枝、小澤、平井", "多摩支店　営業部", "090-7384-3015", "tama-sales_team1-ml@ml.nttdocomo.com", "石黒店長、牧野店長（補佐担当）", "DSイオンモール多摩平の森店、DS稲城矢野口店", "石黒：080-1176-3608,牧野（石黒店長に繋がらない場合）：070-4006-3575", "taga@t-gaia.co.jp,makino@t-gaia.co.jp,yu-kano@t-gaia.co.jp,t-ishiguro@t-gaia.co.jp,urakawa@t-gaia.co.jp,r-kozakai@t-gaia.co.jp,chino@t-gaia.co.jp,sho-hashimoto@t-gaia.co.jp,hisano@t-gaia.co.jp,yamori@t-gaia.co.jp", "代理店欄は7月分を流用（要確認）"], ["2W", "", "ユニモちはら台", "10月10日", "10月12日", "千）ドコモショップ君津店", "千）ドコモショップ　松戸店", "", "井出　光俊\n藤川　奈々", "千葉支店　営業部", "090-7491-4353\n090-7115-6167", "mitsutoshi.ide.ax@nttdocomo.com\nnana.fujikawa.at@nttdocomo.com\nchiba_eigyou_nakata-ml@ml.nttdocomo.com", "◆松戸店：江口店長・山本副店長\n◆君津店：阿部店長・大西副店長", "松戸店・君津店", "◆松戸店：江口店長(080-9212-6817)・山本副店長(080-8726-2643)\n◆君津店：阿部店長(080-7702-4316)・大西副店長(070-4467-3265)", "◆松戸店：江口店長(eguchi-k@mxmobiling.com)・山本副店長(yamamoto-kj@mxmobiling.com)\n◆君津店：阿部店長(abe-d@mxmobiling.com)・大西副店長(oonishi-r@mxmobiling.com)", ""], ["2W", "", "ららぽーと横浜", "10月10日", "10月12日", "神）ドコモショップららぽーと横浜店", "", "", "山内、横山", "営業部", "090-3238-9824", "yamauchiko@nttdocomo.com\nikemoto@nttdocomo.com\ntae.takayama.kd@nttdocomo.com", "大政副店長\n湯川店長\n小林副店長\n金城副店長", "ドコモショップららぽーと横浜店", "080-8411-7867\n080-7882-8279\n090-4027-5594\n090-3071-0539", "omasa-y@mxmobiling.com\nyukawa-st@mxmobiling.com\nkobayashi-tky@mxmobiling.com\nkinjyou-m@mxmobiling.com", "ヘルパーからのルートへの連絡は山内\nそれ以外の各種依頼やリマインド等の連絡は横山"], ["2W", "", "テラスモール松戸", "10月10日", "10月12日", "千）ドコモショップ新松戸店", "千）ドコモショップ新八柱店", "", "井出　光俊\n藤川　奈々", "千葉支店　営業部", "090-7491-4353\n090-7115-6167", "mitsutoshi.ide.ax@nttdocomo.com\nnana.fujikawa.at@nttdocomo.com\nchiba_eigyou_nakata-ml@ml.nttdocomo.com", "", "", "", "", ""], ["3W", "", "トレッサ横浜", "10月14日", "10月18日", "神）ドコモショップトレッサ横浜店", "神）ドコモショップ綱島店", "神）ドコモショップ横浜モアーズ店", "鈴木宏幸", "神奈川支店営業部", "090-1425-0883", "hiroyuki.suzuki.fg@nttdocomo.com", "成松店長", "ドコモショップトレッサ横浜店", "080-9281-1979", "y.narimatsu@kcs.ne.jp", "代理店欄は9月分を流用（要確認）"], ["3W", "", "ららぽーと海老名", "10月17日", "10月18日", "神）ドコモショップ海老名西口店", "", "", "荒井、横山", "営業部", "090-2170-0829", "ayaka.arai.cy@nttdocomo.com\ntae.takayama.kd@nttdocomo.com\nikemoto@nttdocomo.com", "山﨑店長", "ドコモショップ海老名西口店", "090-7198-7193", "m-yamazaki@t-gaia.co.jp", "ヘルパーからのルートへの連絡は荒井\nそれ以外の各種依頼やリマインド等の連絡は横山"], ["3W", "", "アリオ蘇我", "10月17日", "10月18日", "千）ドコモショップ　市原店", "千）ドコモショップアリオ蘇我店", "", "植草めぐみ", "千葉支店　営業部", "090-9014-2226", "megumi.uekusa.hg@nttdocomo.com\nchiba_eigyou_nakata-ml@ml.nttdocomo.com", "佐藤店長", "アリオ蘇我店", "090-5449-0633", "sato.h@takahatacom.co.jp", ""], ["3W", "", "イオンモール成田", "10月17日", "10月18日", "千）ドコモショップ成田土屋店", "千）ドコモショップ富里店", "神）ドコモショップ戸塚深谷店", "鶴田　諒", "千葉支店　営業部", "080-1012-4772", "ryo.tsuruda.rp@nttdocomo.com", "金澤店長", "富里店", "090-7880-2966", "megumi.kanazawa@ranet.co.jp", ""], ["3W", "", "イオンモール多摩平の森", "10月17日", "10月18日", "多）ドコモショップイオンモール多摩平の森店", "多）ドコモショップ京王聖蹟桜ヶ丘店", "多）ドコモショップ高幡不動店", "木枝、小澤、平井", "多摩支店　営業部", "090-7384-3015", "tama-sales_team1-ml@ml.nttdocomo.com", "石黒店長、牧野店長（補佐担当）", "DSイオンモール多摩平の森店、DS稲城矢野口店", "石黒：080-1176-3608,牧野（石黒店長に繋がらない場合）：070-4006-3575", "taga@t-gaia.co.jp,makino@t-gaia.co.jp,yu-kano@t-gaia.co.jp,t-ishiguro@t-gaia.co.jp,urakawa@t-gaia.co.jp,r-kozakai@t-gaia.co.jp,chino@t-gaia.co.jp,sho-hashimoto@t-gaia.co.jp,hisano@t-gaia.co.jp,yamori@t-gaia.co.jp", "代理店欄は7月分を流用（要確認）"], ["3W", "", "ユニモちはら台", "10月17日", "10月18日", "千）ドコモショップ君津店", "千）ドコモショップイオンモール船橋店", "", "井出　光俊\n藤川　奈々", "千葉支店　営業部", "090-7491-4353\n090-7115-6167", "mitsutoshi.ide.ax@nttdocomo.com\nnana.fujikawa.at@nttdocomo.com\nchiba_eigyou_nakata-ml@ml.nttdocomo.com", "◆君津店：阿部店長・大西副店長\n◆イオンモール船橋店：小山店長・俵田副店長・木原副店長", "君津店・イオンモール船橋店", "◆君津店：阿部店長(080-7702-4316)・大西副店長(070-4467-3265)\n◆イオンモール船橋店：小山店長(090-7844-7044)・俵田副店長(080-1170-0044)・木原副店長(070‐4203-1982)", "◆君津店：阿部店長(abe-d@mxmobiling.com)・大西副店長(oonishi-r@mxmobiling.com)\n◆イオンモール船橋店：小山店長(koyama-n@mxmobiling.com)・俵田副店長(tawarada-y@mxmobiling.com)・木原副店長(sh-kihara-h@mxmobiling.com)", ""], ["3W", "", "ららぽーと横浜", "10月17日", "10月18日", "神）ドコモショップららぽーと横浜店", "", "", "山内、横山", "営業部", "090-3238-9824", "yamauchiko@nttdocomo.com\nikemoto@nttdocomo.com\ntae.takayama.kd@nttdocomo.com", "大政副店長\n湯川店長\n小林副店長\n金城副店長", "ドコモショップららぽーと横浜店", "080-8411-7867\n080-7882-8279\n090-4027-5594\n090-3071-0539", "omasa-y@mxmobiling.com\nyukawa-st@mxmobiling.com\nkobayashi-tky@mxmobiling.com\nkinjyou-m@mxmobiling.com", "ヘルパーからのルートへの連絡は山内\nそれ以外の各種依頼やリマインド等の連絡は横山"], ["4W", "", "トレッサ横浜", "10月21日", "10月25日", "神）ドコモショップトレッサ横浜店", "神）ドコモショップ綱島店", "神）ドコモショップ横浜モアーズ店", "鈴木宏幸", "神奈川支店営業部", "090-1425-0883", "hiroyuki.suzuki.fg@nttdocomo.com", "成松店長", "ドコモショップトレッサ横浜店", "080-9281-1979", "y.narimatsu@kcs.ne.jp", "代理店欄は9月分を流用（要確認）"], ["4W", "", "ららぽーと海老名", "10月24日", "10月25日", "神）ドコモショップ海老名西口店", "", "", "荒井、横山", "営業部", "090-2170-0829", "ayaka.arai.cy@nttdocomo.com\ntae.takayama.kd@nttdocomo.com\nikemoto@nttdocomo.com", "山﨑店長", "ドコモショップ海老名西口店", "090-7198-7193", "m-yamazaki@t-gaia.co.jp", "ヘルパーからのルートへの連絡は荒井\nそれ以外の各種依頼やリマインド等の連絡は横山"], ["4W", "", "アリオ蘇我", "10月24日", "10月25日", "千）ドコモショップ　市原店", "千）ドコモショップアリオ蘇我店", "", "植草めぐみ", "千葉支店　営業部", "090-9014-2226", "megumi.uekusa.hg@nttdocomo.com\nchiba_eigyou_nakata-ml@ml.nttdocomo.com", "佐藤店長", "アリオ蘇我店", "090-5449-0633", "sato.h@takahatacom.co.jp", ""], ["4W", "", "イオンモール多摩平の森", "10月24日", "10月25日", "多）ドコモショップイオンモール多摩平の森店", "多）ドコモショップ京王聖蹟桜ヶ丘店", "多）ドコモショップ高幡不動店", "木枝、小澤、平井", "多摩支店　営業部", "090-7384-3015", "tama-sales_team1-ml@ml.nttdocomo.com", "石黒店長、牧野店長（補佐担当）", "DSイオンモール多摩平の森店、DS稲城矢野口店", "石黒：080-1176-3608,牧野（石黒店長に繋がらない場合）：070-4006-3575", "taga@t-gaia.co.jp,makino@t-gaia.co.jp,yu-kano@t-gaia.co.jp,t-ishiguro@t-gaia.co.jp,urakawa@t-gaia.co.jp,r-kozakai@t-gaia.co.jp,chino@t-gaia.co.jp,sho-hashimoto@t-gaia.co.jp,hisano@t-gaia.co.jp,yamori@t-gaia.co.jp", "代理店欄は7月分を流用（要確認）"], ["4W", "", "ユニモちはら台", "10月24日", "10月25日", "千）ドコモショップ君津店", "千）ドコモショップユニモちはら台店", "", "井出　光俊\n藤川　奈々", "千葉支店　営業部", "090-7491-4353\n090-7115-6167", "mitsutoshi.ide.ax@nttdocomo.com\nnana.fujikawa.at@nttdocomo.com\nchiba_eigyou_nakata-ml@ml.nttdocomo.com", "◆君津店：阿部店長・大西副店長\n◆ユニモちはら台店：秀浦店長", "君津店・ユニモちはら台店", "◆君津店：阿部店長(080-7702-4316)・大西副店長(070-4467-3265)\n◆ユニモちはら台店：秀浦店長(080-2163-7997)", "◆君津店：阿部店長(abe-d@mxmobiling.com)・大西副店長(oonishi-r@mxmobiling.com)\n◆ユニモちはら台店：秀浦店長(hideura-a@mxmobiling.com)", ""], ["4W", "", "ららぽーと横浜", "10月24日", "10月25日", "神）ドコモショップららぽーと横浜店", "", "", "山内、横山", "営業部", "090-3238-9824", "yamauchiko@nttdocomo.com\nikemoto@nttdocomo.com\ntae.takayama.kd@nttdocomo.com", "大政副店長\n湯川店長\n小林副店長\n金城副店長", "ドコモショップららぽーと横浜店", "080-8411-7867\n080-7882-8279\n090-4027-5594\n090-3071-0539", "omasa-y@mxmobiling.com\nyukawa-st@mxmobiling.com\nkobayashi-tky@mxmobiling.com\nkinjyou-m@mxmobiling.com", "ヘルパーからのルートへの連絡は山内\nそれ以外の各種依頼やリマインド等の連絡は横山"], ["4W", "", "イオンモールむさし村山", "10月24日", "10月25日", "多）ドコモショップイオンモールむさし村山店", "多）ドコモショップ京王聖蹟桜ヶ丘店", "多）ドコモショップ高幡不動店", "木枝、小澤、平井", "多摩支店　営業部", "090-7384-3015", "tama-sales_team1-ml@ml.nttdocomo.com", "狩野店長", "DSイオンモールむさし村山店", "090-8727-4003", "taga@t-gaia.co.jp,makino@t-gaia.co.jp,yu-kano@t-gaia.co.jp,t-ishiguro@t-gaia.co.jp,urakawa@t-gaia.co.jp,r-kozakai@t-gaia.co.jp,chino@t-gaia.co.jp,sho-hashimoto@t-gaia.co.jp,hisano@t-gaia.co.jp,yamori@t-gaia.co.jp", ""]],
 });
 /* ---- src/data/2026-11.js ---- */
 // 2026年11月のデータ。
@@ -1056,6 +1055,108 @@ registerMonth({
   ["5W", "", "ららぽーと海老名", "11月28日", "11月29日", "神）ドコモショップ海老名西口店", "神）ドコモショップ武蔵小杉法政通り店", "神）ドコモショップ久里浜店、神）ドコモショップ武蔵小杉店", "荒井、横山", "営業部", "090-2170-0829（荒井）\n080-1270-3299(横山)", "ayaka.arai.cy@nttdocomo.com\ntae.takayama.kd@nttdocomo.com\nikemoto@nttdocomo.com", "山﨑店長", "ドコモショップ海老名西口店", "090-7198-7193", "m-yamazaki@t-gaia.co.jp", ""]
   ]
 });
+/* ---- src/js/04-eval-rules.js ---- */
+// ===== 委託先評価ルール（月ごとに切替） =====
+// 2Q（〜2026-09）… 従来基準。7〜9月の評価は過去の基準のまま残す。
+// 3Q（2026-10〜）… NTTドコモ「課題①-2.評価指標の見直し」の新基準。
+//   ・加点バランス調整：HS新規 90%以上=8pt / 120%以上=13pt、付帯率の最高ランクは 3pt
+//   ・減点の追加：「代理店認識実績との乖離」▲1pt（ALADIN乖離の1ランクダウンは廃止）
+//   ・【開催毎】HS新規未達ペナルティ：終了した催事ごとに 目標達成率50%未満=▲1pt / 30%未満=▲2pt
+//   ・CPA 足切り 45,000円/件（目標 40,000円/件）、評価対象は10-11月合計
+//   ・委託期間 10月〜翌3月（半年）。足切りを割った場合は3ヶ月で契約終了
+// 評価基準が変わったら、この表だけ直せば台帳タブの説明・評価サマリ・概観KPIが全部追随する。
+const EVAL_RULES_2Q = {
+  id: '2Q',
+  hsTiers:     [{pct:80,pt:8},{pct:100,pt:10},{pct:120,pt:12}],
+  cardTiers:   [{pct:10,pt:2},{pct:15,pt:4}],
+  hikariTiers: [{pct:15,pt:2},{pct:20,pt:4}],
+  aladin: true,            // 申告とALADIN実績に乖離 → 付帯率を1ランクダウン
+  eventPenalty: null,
+  ptCutoff: 24, cpaTarget: 40000, cpaCutoff: 50000,
+  cpaPeriod: '7-8月合計が評価対象',
+  incidentText: '法令違反等=次月以降契約なし / 催事回数制限・出禁=-4pt / 書面提出・返金事案=-3pt / 口頭注意・報告物遅延=-1pt / その他 都度判断',
+  periodNote: ''
+};
+const EVAL_RULES_3Q = {
+  id: '3Q',
+  hsTiers:     [{pct:90,pt:8},{pct:100,pt:10},{pct:120,pt:13}],
+  cardTiers:   [{pct:10,pt:2},{pct:15,pt:3}],
+  hikariTiers: [{pct:15,pt:2},{pct:20,pt:3}],
+  aladin: false,
+  eventPenalty: [{below:30,pt:2},{below:50,pt:1}],   // 小さい方から判定（30%未満=▲2pt、50%未満=▲1pt）
+  ptCutoff: 24, cpaTarget: 40000, cpaCutoff: 45000,
+  cpaPeriod: '10-11月合計が評価対象',
+  incidentText: '法令違反・ドコモ催事実施不可=次月以降契約なし / 催事回数制限・出禁=▲4pt / 端末書等書面提出事案・ヘルパー責による料金返還事案=▲3pt / 口頭注意事案・報告物（報告書・ロケハンシート）の提出遅延・代理店認識実績との乖離=▲1pt / その他 都度判断',
+  periodNote: '3Q委託先評価：10-11月 単月ごとの実績ポイント累計が評価対象。委託期間は10月〜翌3月（半年）。足切り基準を割った場合は3ヶ月で契約終了。'
+};
+const EVAL_3Q_FROM = '2026-10';
+function evalRules(){ return currentMonthKey >= EVAL_3Q_FROM ? EVAL_RULES_3Q : EVAL_RULES_2Q; }
+
+// tiers は pct の小さい順。down=true なら1ランク下のポイント（最下位ランクは0）
+function tierPt(r, tiers, down){
+  if(r===null) return 0;
+  let idx = -1;
+  tiers.forEach((t,i)=>{ if(r>=t.pct) idx = i; });
+  if(down) idx -= 1;
+  return idx>=0 ? tiers[idx].pt : 0;
+}
+// 開催毎ペナルティ（rate=その催事のHS即日÷目標の%）。該当なしは0
+function eventPenaltyPt(rate){
+  const list = evalRules().eventPenalty;
+  if(!list) return 0;
+  for(const p of list){ if(rate < p.below) return p.pt; }
+  return 0;
+}
+
+function tierArrow(tiers){ return tiers.slice().reverse().map(t=>t.pct+'%↑'+t.pt+'pt').join(' / '); }
+function tierRule(tiers){ return tiers.slice().reverse().map(t=>t.pct+'%以上='+t.pt+'pt').join(' / '); }
+
+// 台帳タブの説明ボックス
+function evalRulesBoxHtml(R){
+  const L = [];
+  L.push('<b>●HS新規</b>：PI、純粋新規　※ドコモのMVNOはカウント対象外　※<b>委託先評価は当日成約（PI即日）のみ対象</b>。同点の場合は後日含み実績を参考');
+  L.push('<b>●ドコモ光PI同日付帯率</b>：ドコモ光+home5G獲得数 ／ PI獲得世帯数（委託先申告）'
+    + (R.aladin ? '　※<span class="warn">申告数とALADIN実績に乖離がある場合、加点ポイント1ランクダウン</span>' : ''));
+  L.push('<b>●加点</b>：HS新規達成率 '+tierRule(R.hsTiers)+'　｜　dカード付帯率 '+tierRule(R.cardTiers)+'　｜　光付帯率 '+tierRule(R.hikariTiers));
+  L.push('<b>●減点</b>：'+R.incidentText);
+  if(R.eventPenalty){
+    L.push('<b>●【開催毎】HS新規未達ペナルティ</b>：終了した催事ごとに、目標達成率 50%未満=▲1pt / 30%未満=▲2pt（評価サマリで自動計算）');
+  }
+  L.push('<b>●継続判定</b>：委託先評価 足切り'+R.ptCutoff+'pt ／ CPA 足切り'+R.cpaCutoff.toLocaleString()+'円/件（目標'+(R.cpaTarget/10000)+'万円/件）。'
+    + '<span class="warn">どちらか片方でも足切り未達=契約終了'+(R.eventPenalty?'（3ヶ月で終了）':'')+'</span>'
+    + (R.eventPenalty ? '　※委託期間は10月〜翌3月（半年）。両方とも平均以上=原則継続 / 片方が平均未満=ライン数を調整 / 両方平均未満=原則終了（上位の稼働可能人数によっては継続）' : ''));
+  return L.join('<br>\n  ');
+}
+
+// 評価基準が切り替わったときだけラベル類を書き換える（updateAll から毎回呼ぶ）
+let _evalLabelsFor = null;
+function renderEvalLabels(){
+  const R = evalRules();
+  if(_evalLabelsFor === R.id) return;
+  _evalLabelsFor = R.id;
+  const el = id=>document.getElementById(id);
+  const text = (id, s)=>{ const e=el(id); if(e) e.textContent = s; };
+  const show = (id, on)=>{ const e=el(id); if(e) e.style.display = on ? '' : 'none'; };
+  const box = el('rulesBox'); if(box) box.innerHTML = '\n  '+evalRulesBoxHtml(R)+'\n';
+  text('evHsPtLabel', '→ ポイント（'+tierArrow(R.hsTiers)+'）');
+  text('evCardPtLabel', '→ ポイント（'+tierArrow(R.cardTiers)+'）');
+  text('evHikariPtLabel', '→ ポイント（'+tierArrow(R.hikariTiers)+'）');
+  const [c0,c1] = R.cardTiers, [h0,h1] = R.hikariTiers;
+  text('tgCard10Label', '　'+c0.pt+'pt（'+c0.pct+'%）に必要');
+  text('tgCard15Label', '　'+c1.pt+'pt（'+c1.pct+'%）に必要');
+  text('tgHikari15Label', '　'+h0.pt+'pt（'+h0.pct+'%）に必要');
+  text('tgHikari20Label', '　'+h1.pt+'pt（'+h1.pct+'%）に必要');
+  text('evMinusLabel', R.eventPenalty ? '減点（インシデント・手入力）' : '減点（インシデント）');
+  text('evIncidentHint', R.eventPenalty ? ('目安：'+R.incidentText) : '');
+  show('evIncidentHint', !!R.eventPenalty);
+  show('evAladinRow', R.aladin);
+  show('evEventPenaltyRow', !!R.eventPenalty);
+  show('evEventPenaltyList', false);
+  text('evCpaTitle', 'CPA（'+R.cpaPeriod+'）');
+  text('evCpaRule', '目標: '+R.cpaTarget.toLocaleString()+'円/件　足切り: '+R.cpaCutoff.toLocaleString()+'円/件');
+  text('evPeriodNote', R.periodNote);
+  show('evPeriodNote', !!R.periodNote);
+}
 /* ---- src/js/06-month-state.js ---- */
 // ===== 表示中の月 =====
 const CURRENT_MONTH_LS_KEY = 'event-ledger-current-month';
@@ -1612,10 +1713,10 @@ function setPace(c, td){
   else if(ratio<80) td.classList.add('ng');
 }
 
-function hsPt(r){ if(r===null)return 0; if(r>=120)return 12; if(r>=100)return 10; if(r>=80)return 8; return 0; }
-const HS_TIERS = [{pct:80,pt:8},{pct:100,pt:10},{pct:120,pt:12}];
-function cardPt(r,down){ if(r===null)return 0; let p = r>=15?4 : r>=10?2 : 0; if(down) p = p===4?2:0; return p; }
-function hikariPt(r,down){ if(r===null)return 0; let p = r>=20?4 : r>=15?2 : 0; if(down) p = p===4?2:0; return p; }
+// 評価ポイントの基準は 04-eval-rules.js（月ごとに2Q/3Qで切替）
+function hsPt(r){ return tierPt(r, evalRules().hsTiers); }
+function cardPt(r,down){ return tierPt(r, evalRules().cardTiers, down); }
+function hikariPt(r,down){ return tierPt(r, evalRules().hikariTiers, down); }
 
 function barHtml(rate){
   if(rate===null) return '';
@@ -2163,7 +2264,10 @@ function updateWeekChart(rows){
 }
 /* ---- src/js/52-updateall.js ---- */
 function updateAll(){
+  const R = evalRules();
+  renderEvalLabels();
   const rows = [...document.querySelectorAll('#ledger tbody tr')];
+  const evPens = [];   // 開催毎HS新規未達ペナルティ（終了した催事のみ）
   let sumT=0, s1=0, s2=0, ss=0, sc=0, sh=0, s5=0;
   let a1=0, aT=0, aS=0, aC=0, aH=0, a5=0;
   let cntBefore=0, cntOngoing=0, cntDone=0, paceOk=0, paceWarn=0, paceNg=0;
@@ -2191,6 +2295,11 @@ function updateAll(){
       if(pt.startsWith('順調')) paceOk++; else if(pt.startsWith('やや遅れ')) paceWarn++; else if(pt.startsWith('遅れ')) paceNg++;
     }
     a1+=n(c[23]); aT+=n(c[TARGET_IDX]); aS+=n(c[25]); aC+=n(c[26]); aH+=n(c[27]); a5+=n(c[28]);
+    if(R.eventPenalty && cls==='done' && n(c[TARGET_IDX])>0){
+      const evRate = n(c[23])/n(c[TARGET_IDX])*100;
+      const evPt = eventPenaltyPt(evRate);
+      if(evPt>0) evPens.push({pt:evPt, rate:evRate, name:cellText(c[5]).trim()+'（'+cellText(c[14]).trim()+'〜'+cellText(c[15]).trim()+'）'});
+    }
     if(r.style.display==='none') return;
     sumT += n(c[TARGET_IDX]);
     s1+=n(c[23]); s2+=n(c[24]); ss+=n(c[25]); sc+=n(c[26]); sh+=n(c[27]); s5+=n(c[28]);
@@ -2221,10 +2330,11 @@ function updateAll(){
 
   // 評価サマリ
   const hsR = pct(a1, aT), cR = pct(aC, a1), hR = pct(aH+a5, aS);
-  const downC = evAladinCard.checked, downH = evAladinHikari.checked;
+  const downC = R.aladin && evAladinCard.checked, downH = R.aladin && evAladinHikari.checked;
   const p1 = hsPt(hsR), p2 = cardPt(cR, downC), p3 = hikariPt(hR, downH);
   const minus = Number(evMinus.value)||0;
-  const total = p1+p2+p3-minus;
+  const penTotal = evPens.reduce((sum,p)=>sum+p.pt, 0);
+  const total = p1+p2+p3-minus-penTotal;
 
   evHsRate.textContent = fmt(hsR)||'-';
   evHsPt.textContent = p1+'pt';
@@ -2237,7 +2347,7 @@ function updateAll(){
   }else{
     if(a1>=aT){ ovHsRemain.textContent = '目標達成済み'; ovHsRemain.className = 'kpi-sub ok'; }
     else{ ovHsRemain.textContent = 'あと'+(aT-a1)+'台で目標達成'; ovHsRemain.className = 'kpi-sub ng'; }
-    ovHsLadder.innerHTML = HS_TIERS.map(t=>{
+    ovHsLadder.innerHTML = R.hsTiers.map(t=>{
       const need = Math.ceil(aT*t.pct/100);
       const rest = need-a1;
       const done = rest<=0;
@@ -2258,32 +2368,41 @@ function updateAll(){
   }
   tgCardNow.textContent = aC.toLocaleString();
   tgHikariNow.textContent = (aH+a5).toLocaleString();
-  tg(tgCard10, aC, 10, a1); tg(tgCard15, aC, 15, a1);
-  tg(tgHikari15, aH+a5, 15, aS); tg(tgHikari20, aH+a5, 20, aS);
+  tg(tgCard10, aC, R.cardTiers[0].pct, a1); tg(tgCard15, aC, R.cardTiers[1].pct, a1);
+  tg(tgHikari15, aH+a5, R.hikariTiers[0].pct, aS); tg(tgHikari20, aH+a5, R.hikariTiers[1].pct, aS);
+
+  // 開催毎HS新規未達ペナルティ（3Q〜）
+  const penEl = document.getElementById('evEventPenalty'), penList = document.getElementById('evEventPenaltyList');
+  if(R.eventPenalty){
+    penEl.textContent = penTotal ? '▲'+penTotal+'pt' : '0pt';
+    penEl.className = 'v pt'+(penTotal?' ng':'');
+    penList.innerHTML = evPens.map(p=>esc(p.name)+'　達成率 '+p.rate.toFixed(0)+'% → ▲'+p.pt+'pt').join('<br>');
+    penList.style.display = evPens.length ? '' : 'none';
+  }
 
   evTotalPt.textContent = total+'pt';
-  evTotalPt.className = 'v pt '+(total>=24?'ok':'ng');
-  evPtVerdict.textContent = total>=24 ? '足切り基準(24pt)クリア' : '足切り基準(24pt)未達 → 契約終了リスク';
-  evPtVerdict.className = 'verdict '+(total>=24?'ok':'ng');
+  evTotalPt.className = 'v pt '+(total>=R.ptCutoff?'ok':'ng');
+  evPtVerdict.textContent = total>=R.ptCutoff ? '足切り基準('+R.ptCutoff+'pt)クリア' : '足切り基準('+R.ptCutoff+'pt)未達 → 契約終了リスク';
+  evPtVerdict.className = 'verdict '+(total>=R.ptCutoff?'ok':'ng');
   ovTotalPt.textContent = total+'pt';
-  ovTotalPt.className = 'kpi-value '+(total>=24?'ok':'ng');
-  ovPtVerdict.textContent = total>=24 ? '足切り基準クリア' : '足切り未達';
-  ovPtVerdict.className = 'kpi-sub '+(total>=24?'ok':'ng');
+  ovTotalPt.className = 'kpi-value '+(total>=R.ptCutoff?'ok':'ng');
+  ovPtVerdict.textContent = total>=R.ptCutoff ? '足切り基準クリア' : '足切り未達';
+  ovPtVerdict.className = 'kpi-sub '+(total>=R.ptCutoff?'ok':'ng');
 
   evHsCount.textContent = a1.toLocaleString()+'件';
   const billing = Number(evBilling.value)||0;
   if(billing>0 && a1>0){
     const cpa = billing/a1;
     evCpa.textContent = Math.round(cpa).toLocaleString()+'円/件';
-    evCpa.className = 'v pt '+(cpa<=50000?'ok':'ng');
-    evCpaVerdict.textContent = cpa<=40000 ? '目標(4万円/件)クリア'
-      : cpa<=50000 ? '足切りクリア（目標4万円は未達）'
-      : '足切り基準(5万円/件)超過 → 契約終了リスク';
-    evCpaVerdict.className = 'verdict '+(cpa<=50000?'ok':'ng');
+    evCpa.className = 'v pt '+(cpa<=R.cpaCutoff?'ok':'ng');
+    evCpaVerdict.textContent = cpa<=R.cpaTarget ? '目標('+(R.cpaTarget/10000)+'万円/件)クリア'
+      : cpa<=R.cpaCutoff ? '足切りクリア（目標'+(R.cpaTarget/10000)+'万円は未達）'
+      : '足切り基準('+(R.cpaCutoff/10000)+'万円/件)超過 → 契約終了リスク';
+    evCpaVerdict.className = 'verdict '+(cpa<=R.cpaCutoff?'ok':'ng');
     ovCpa.textContent = Math.round(cpa).toLocaleString()+'円/件';
-    ovCpa.className = 'kpi-value '+(cpa<=50000?'ok':'ng');
-    ovCpaVerdict.textContent = cpa<=40000 ? '目標クリア' : cpa<=50000 ? '足切りクリア' : '足切り基準超過';
-    ovCpaVerdict.className = 'kpi-sub '+(cpa<=50000?'ok':'ng');
+    ovCpa.className = 'kpi-value '+(cpa<=R.cpaCutoff?'ok':'ng');
+    ovCpaVerdict.textContent = cpa<=R.cpaTarget ? '目標クリア' : cpa<=R.cpaCutoff ? '足切りクリア' : '足切り基準超過';
+    ovCpaVerdict.className = 'kpi-sub '+(cpa<=R.cpaCutoff?'ok':'ng');
   }else{
     evCpa.textContent = '-'; evCpa.className='v pt';
     evCpaVerdict.textContent = '請求額を入力'; evCpaVerdict.className='verdict';

@@ -1,5 +1,8 @@
 function updateAll(){
+  const R = evalRules();
+  renderEvalLabels();
   const rows = [...document.querySelectorAll('#ledger tbody tr')];
+  const evPens = [];   // 開催毎HS新規未達ペナルティ（終了した催事のみ）
   let sumT=0, s1=0, s2=0, ss=0, sc=0, sh=0, s5=0;
   let a1=0, aT=0, aS=0, aC=0, aH=0, a5=0;
   let cntBefore=0, cntOngoing=0, cntDone=0, paceOk=0, paceWarn=0, paceNg=0;
@@ -27,6 +30,11 @@ function updateAll(){
       if(pt.startsWith('順調')) paceOk++; else if(pt.startsWith('やや遅れ')) paceWarn++; else if(pt.startsWith('遅れ')) paceNg++;
     }
     a1+=n(c[23]); aT+=n(c[TARGET_IDX]); aS+=n(c[25]); aC+=n(c[26]); aH+=n(c[27]); a5+=n(c[28]);
+    if(R.eventPenalty && cls==='done' && n(c[TARGET_IDX])>0){
+      const evRate = n(c[23])/n(c[TARGET_IDX])*100;
+      const evPt = eventPenaltyPt(evRate);
+      if(evPt>0) evPens.push({pt:evPt, rate:evRate, name:cellText(c[5]).trim()+'（'+cellText(c[14]).trim()+'〜'+cellText(c[15]).trim()+'）'});
+    }
     if(r.style.display==='none') return;
     sumT += n(c[TARGET_IDX]);
     s1+=n(c[23]); s2+=n(c[24]); ss+=n(c[25]); sc+=n(c[26]); sh+=n(c[27]); s5+=n(c[28]);
@@ -57,10 +65,11 @@ function updateAll(){
 
   // 評価サマリ
   const hsR = pct(a1, aT), cR = pct(aC, a1), hR = pct(aH+a5, aS);
-  const downC = evAladinCard.checked, downH = evAladinHikari.checked;
+  const downC = R.aladin && evAladinCard.checked, downH = R.aladin && evAladinHikari.checked;
   const p1 = hsPt(hsR), p2 = cardPt(cR, downC), p3 = hikariPt(hR, downH);
   const minus = Number(evMinus.value)||0;
-  const total = p1+p2+p3-minus;
+  const penTotal = evPens.reduce((sum,p)=>sum+p.pt, 0);
+  const total = p1+p2+p3-minus-penTotal;
 
   evHsRate.textContent = fmt(hsR)||'-';
   evHsPt.textContent = p1+'pt';
@@ -73,7 +82,7 @@ function updateAll(){
   }else{
     if(a1>=aT){ ovHsRemain.textContent = '目標達成済み'; ovHsRemain.className = 'kpi-sub ok'; }
     else{ ovHsRemain.textContent = 'あと'+(aT-a1)+'台で目標達成'; ovHsRemain.className = 'kpi-sub ng'; }
-    ovHsLadder.innerHTML = HS_TIERS.map(t=>{
+    ovHsLadder.innerHTML = R.hsTiers.map(t=>{
       const need = Math.ceil(aT*t.pct/100);
       const rest = need-a1;
       const done = rest<=0;
@@ -94,32 +103,41 @@ function updateAll(){
   }
   tgCardNow.textContent = aC.toLocaleString();
   tgHikariNow.textContent = (aH+a5).toLocaleString();
-  tg(tgCard10, aC, 10, a1); tg(tgCard15, aC, 15, a1);
-  tg(tgHikari15, aH+a5, 15, aS); tg(tgHikari20, aH+a5, 20, aS);
+  tg(tgCard10, aC, R.cardTiers[0].pct, a1); tg(tgCard15, aC, R.cardTiers[1].pct, a1);
+  tg(tgHikari15, aH+a5, R.hikariTiers[0].pct, aS); tg(tgHikari20, aH+a5, R.hikariTiers[1].pct, aS);
+
+  // 開催毎HS新規未達ペナルティ（3Q〜）
+  const penEl = document.getElementById('evEventPenalty'), penList = document.getElementById('evEventPenaltyList');
+  if(R.eventPenalty){
+    penEl.textContent = penTotal ? '▲'+penTotal+'pt' : '0pt';
+    penEl.className = 'v pt'+(penTotal?' ng':'');
+    penList.innerHTML = evPens.map(p=>esc(p.name)+'　達成率 '+p.rate.toFixed(0)+'% → ▲'+p.pt+'pt').join('<br>');
+    penList.style.display = evPens.length ? '' : 'none';
+  }
 
   evTotalPt.textContent = total+'pt';
-  evTotalPt.className = 'v pt '+(total>=24?'ok':'ng');
-  evPtVerdict.textContent = total>=24 ? '足切り基準(24pt)クリア' : '足切り基準(24pt)未達 → 契約終了リスク';
-  evPtVerdict.className = 'verdict '+(total>=24?'ok':'ng');
+  evTotalPt.className = 'v pt '+(total>=R.ptCutoff?'ok':'ng');
+  evPtVerdict.textContent = total>=R.ptCutoff ? '足切り基準('+R.ptCutoff+'pt)クリア' : '足切り基準('+R.ptCutoff+'pt)未達 → 契約終了リスク';
+  evPtVerdict.className = 'verdict '+(total>=R.ptCutoff?'ok':'ng');
   ovTotalPt.textContent = total+'pt';
-  ovTotalPt.className = 'kpi-value '+(total>=24?'ok':'ng');
-  ovPtVerdict.textContent = total>=24 ? '足切り基準クリア' : '足切り未達';
-  ovPtVerdict.className = 'kpi-sub '+(total>=24?'ok':'ng');
+  ovTotalPt.className = 'kpi-value '+(total>=R.ptCutoff?'ok':'ng');
+  ovPtVerdict.textContent = total>=R.ptCutoff ? '足切り基準クリア' : '足切り未達';
+  ovPtVerdict.className = 'kpi-sub '+(total>=R.ptCutoff?'ok':'ng');
 
   evHsCount.textContent = a1.toLocaleString()+'件';
   const billing = Number(evBilling.value)||0;
   if(billing>0 && a1>0){
     const cpa = billing/a1;
     evCpa.textContent = Math.round(cpa).toLocaleString()+'円/件';
-    evCpa.className = 'v pt '+(cpa<=50000?'ok':'ng');
-    evCpaVerdict.textContent = cpa<=40000 ? '目標(4万円/件)クリア'
-      : cpa<=50000 ? '足切りクリア（目標4万円は未達）'
-      : '足切り基準(5万円/件)超過 → 契約終了リスク';
-    evCpaVerdict.className = 'verdict '+(cpa<=50000?'ok':'ng');
+    evCpa.className = 'v pt '+(cpa<=R.cpaCutoff?'ok':'ng');
+    evCpaVerdict.textContent = cpa<=R.cpaTarget ? '目標('+(R.cpaTarget/10000)+'万円/件)クリア'
+      : cpa<=R.cpaCutoff ? '足切りクリア（目標'+(R.cpaTarget/10000)+'万円は未達）'
+      : '足切り基準('+(R.cpaCutoff/10000)+'万円/件)超過 → 契約終了リスク';
+    evCpaVerdict.className = 'verdict '+(cpa<=R.cpaCutoff?'ok':'ng');
     ovCpa.textContent = Math.round(cpa).toLocaleString()+'円/件';
-    ovCpa.className = 'kpi-value '+(cpa<=50000?'ok':'ng');
-    ovCpaVerdict.textContent = cpa<=40000 ? '目標クリア' : cpa<=50000 ? '足切りクリア' : '足切り基準超過';
-    ovCpaVerdict.className = 'kpi-sub '+(cpa<=50000?'ok':'ng');
+    ovCpa.className = 'kpi-value '+(cpa<=R.cpaCutoff?'ok':'ng');
+    ovCpaVerdict.textContent = cpa<=R.cpaTarget ? '目標クリア' : cpa<=R.cpaCutoff ? '足切りクリア' : '足切り基準超過';
+    ovCpaVerdict.className = 'kpi-sub '+(cpa<=R.cpaCutoff?'ok':'ng');
   }else{
     evCpa.textContent = '-'; evCpa.className='v pt';
     evCpaVerdict.textContent = '請求額を入力'; evCpaVerdict.className='verdict';

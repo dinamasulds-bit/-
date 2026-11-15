@@ -62,13 +62,7 @@
 </div><!-- /tab-overview -->
 
 <div class="tab-panel tab-hidden" id="tab-ledger">
-<div class="rules">
-  <b>●HS新規</b>：PI、純粋新規　※ドコモのMVNOはカウント対象外　※<b>委託先評価は当日成約（PI即日）のみ対象</b>。同点の場合は後日含み実績を参考<br>
-  <b>●ドコモ光PI同日付帯率</b>：ドコモ光+home5G獲得数 ／ PI獲得世帯数（委託先申告）　※<span class="warn">申告数とALADIN実績に乖離がある場合、加点ポイント1ランクダウン</span><br>
-  <b>●加点</b>：HS新規達成率 120%以上=12pt / 100%以上=10pt / 80%以上=8pt　｜　dカード付帯率 15%以上=4pt / 10%以上=2pt　｜　光付帯率 20%以上=4pt / 15%以上=2pt<br>
-  <b>●減点</b>：法令違反等=次月以降契約なし / 催事回数制限・出禁=-4pt / 書面提出・返金事案=-3pt / 口頭注意・報告物遅延=-1pt / その他 都度判断<br>
-  <b>●継続判定</b>：委託先評価 足切り24pt ／ CPA 足切り50,000円/件（目標4万円/件）。<span class="warn">どちらか片方でも足切り未達=契約終了</span>
-</div>
+<div class="rules" id="rulesBox"></div>
 
 <div class="toolbar">
   <label>週: <select id="fWeek" onchange="applyFilter()"><option value="">全て</option></select></label>
@@ -160,38 +154,42 @@
 
 <div class="tab-panel tab-hidden" id="tab-eval">
 <h2>委託先評価サマリ（全行集計・月次）</h2>
+<div class="sub" id="evPeriodNote" style="display:none;"></div>
 <div class="panel">
   <div class="card">
     <h3>加点ポイント</h3>
     <div class="row"><span>HS新規達成率（即日/目標）</span><span class="v" id="evHsRate">-</span></div>
-    <div class="row"><span>→ ポイント（120%↑12pt / 100%↑10pt / 80%↑8pt）</span><span class="v pt" id="evHsPt">-</span></div>
+    <div class="row"><span id="evHsPtLabel">→ ポイント</span><span class="v pt" id="evHsPt">-</span></div>
     <div class="row"><span>dカード付帯率（カード/PI即日）</span><span class="v" id="evCardRate">-</span></div>
-    <div class="row"><span>→ ポイント（15%↑4pt / 10%↑2pt）</span><span class="v pt" id="evCardPt">-</span></div>
+    <div class="row"><span id="evCardPtLabel">→ ポイント</span><span class="v pt" id="evCardPt">-</span></div>
     <div class="row"><span>光PI同日付帯率（光+home5G/PI世帯数）</span><span class="v" id="evHikariRate">-</span></div>
-    <div class="row"><span>→ ポイント（20%↑4pt / 15%↑2pt）</span><span class="v pt" id="evHikariPt">-</span></div>
+    <div class="row"><span id="evHikariPtLabel">→ ポイント</span><span class="v pt" id="evHikariPt">-</span></div>
   </div>
   <div class="card">
     <h3>付帯率 目標獲得数（自動算出）</h3>
     <div class="row"><span><b>dカード</b>（PI即日比・現在 <span id="tgCardNow">-</span>件）</span><span></span></div>
-    <div class="row"><span>　2pt（10%）に必要</span><span class="v" id="tgCard10">-</span></div>
-    <div class="row"><span>　4pt（15%）に必要</span><span class="v" id="tgCard15">-</span></div>
+    <div class="row"><span id="tgCard10Label">　2pt（10%）に必要</span><span class="v" id="tgCard10">-</span></div>
+    <div class="row"><span id="tgCard15Label">　4pt（15%）に必要</span><span class="v" id="tgCard15">-</span></div>
     <div class="row" style="border-top:1px solid #eee;margin-top:4px;padding-top:4px;"><span><b>光+home5G</b>（PI世帯数比・現在 <span id="tgHikariNow">-</span>件）</span><span></span></div>
-    <div class="row"><span>　2pt（15%）に必要</span><span class="v" id="tgHikari15">-</span></div>
-    <div class="row"><span>　4pt（20%）に必要</span><span class="v" id="tgHikari20">-</span></div>
+    <div class="row"><span id="tgHikari15Label">　2pt（15%）に必要</span><span class="v" id="tgHikari15">-</span></div>
+    <div class="row"><span id="tgHikari20Label">　4pt（20%）に必要</span><span class="v" id="tgHikari20">-</span></div>
   </div>
   <div class="card">
     <h3>減点・合計</h3>
-    <div class="row"><span>減点（インシデント）</span><span><input type="number" id="evMinus" value="0" min="0" oninput="updateAll();saveAll()"> pt</span></div>
-    <div class="row"><span>ALADIN乖離（付帯率1ランクダウン）</span><span><label><input type="checkbox" id="evAladinCard" onchange="updateAll();saveAll()" style="width:auto">dカード</label>　<label><input type="checkbox" id="evAladinHikari" onchange="updateAll();saveAll()" style="width:auto">光</label></span></div>
+    <div class="row"><span id="evMinusLabel">減点（インシデント）</span><span><input type="number" id="evMinus" value="0" min="0" oninput="updateAll();saveAll()"> pt</span></div>
+    <div class="row" id="evAladinRow"><span>ALADIN乖離（付帯率1ランクダウン）</span><span><label><input type="checkbox" id="evAladinCard" onchange="updateAll();saveAll()" style="width:auto">dカード</label>　<label><input type="checkbox" id="evAladinHikari" onchange="updateAll();saveAll()" style="width:auto">光</label></span></div>
+    <div class="sub" id="evIncidentHint" style="display:none;margin:2px 0 6px;font-size:12px;"></div>
+    <div class="row" id="evEventPenaltyRow" style="display:none;"><span>【開催毎】HS新規未達ペナルティ（自動）</span><span class="v pt" id="evEventPenalty">0pt</span></div>
+    <div class="sub" id="evEventPenaltyList" style="display:none;margin:2px 0 6px;font-size:12px;"></div>
     <div class="row" style="border-top:1px solid #ccc;margin-top:6px;padding-top:6px;"><span><b>委託先評価 合計</b></span><span class="v pt" id="evTotalPt">-</span></div>
     <div class="verdict" id="evPtVerdict">足切り基準: 24pt</div>
   </div>
   <div class="card">
-    <h3>CPA（7-8月合計が評価対象）</h3>
+    <h3 id="evCpaTitle">CPA（7-8月合計が評価対象）</h3>
     <div class="row"><span>ご請求額（WS等支社依頼費用は除く）</span><span><input type="number" id="evBilling" value="" placeholder="円" oninput="updateAll();saveAll()"> 円</span></div>
     <div class="row"><span>HS新規実績（当日成約 ΣHS即日）</span><span class="v" id="evHsCount">-</span></div>
     <div class="row"><span><b>CPA（請求額/件）</b></span><span class="v pt" id="evCpa">-</span></div>
-    <div class="row"><span>目標: 40,000円/件　足切り: 50,000円/件</span><span></span></div>
+    <div class="row"><span id="evCpaRule">目標: 40,000円/件　足切り: 50,000円/件</span><span></span></div>
     <div class="verdict" id="evCpaVerdict">請求額を入力</div>
   </div>
 </div>
