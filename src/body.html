@@ -18,6 +18,7 @@
     <button class="tab-btn" data-tab="claims" onclick="switchTab('claims')">⚠️ クレーム</button>
     <button class="tab-btn" data-tab="contacts" onclick="switchTab('contacts')">🤝 連携情報</button>
     <button class="tab-btn" data-tab="rivals" data-field-hide="1" onclick="switchTab('rivals')">🏢 他社実績</button>
+    <button class="tab-btn" data-tab="rivalsMonthly" data-field-hide="1" onclick="switchTab('rivalsMonthly')">📅 他社月別平均</button>
   </div>
 </div>
 
@@ -343,6 +344,15 @@
 <table id="rivalsDetail"><thead></thead><tbody></tbody></table>
 </div>
 </div><!-- /tab-rivals -->
+
+<div class="tab-panel tab-hidden" id="tab-rivalsMonthly">
+<h2>他社 月別平均（ルーデンス比較）</h2>
+<div class="sub">他社実績タブの明細から月別に集計。他社＝ルーデンス以外の委託先（「-」は除外）。達成率は目標入力のある行のみ（実績÷目標）。付帯率は行の単純平均。</div>
+<div class="wrap" style="max-height:none;">
+<table id="rivalsMonthlyTable"><thead></thead><tbody></tbody></table>
+</div>
+<div class="sub" id="rivalsMonthlyNote" style="margin-top:10px;"></div>
+</div><!-- /tab-rivalsMonthly -->
 
 </div><!-- /.page -->
 

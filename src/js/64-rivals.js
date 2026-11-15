@@ -76,3 +76,52 @@ function sortRivalsFacility(th){
   tbody.appendChild(frag);
   th.textContent = th.dataset.label + (rivalsSortDir===1 ? ' ▲' : rivalsSortDir===2 ? ' ▼' : '');
 }
+// ===== 他社 月別平均（ルーデンス比較）=====
+// RIVALS.detail の行から集計（列: 0=実施月 6=委託先 10=HS新規実績 19=イエナカ率 21=目標 24=dカード率）。
+function rivalsNum(s){ const v = parseFloat(String(s).replace('%','')); return isNaN(v) ? null : v; }
+function rivalsGroup(name){
+  if(!name || name==='-') return null;
+  return name.startsWith('ルーデンス') ? 'ours' : 'other';
+}
+function rivalsMonthStats(rows, month, g){
+  const rs = rows.filter(r => r[0]===month && rivalsGroup(r[6])===g);
+  const tg = rs.filter(r => (rivalsNum(r[21])||0) > 0);
+  const T = tg.reduce((a,r)=>a+rivalsNum(r[21]), 0);
+  const A = tg.reduce((a,r)=>a+(rivalsNum(r[10])||0), 0);
+  const avg = k => { const v = rs.map(r=>rivalsNum(r[k])).filter(x=>x!==null && x>0); return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null; };
+  return { events: rs.length, withTarget: tg.length, T, A,
+           rate: T ? A/T*100 : null, ienaka: avg(19), dcard: avg(24) };
+}
+function fmtPct(v){ return v===null ? '-' : v.toFixed(1)+'%'; }
+function fmtDiff(a,b){ return (a===null||b===null) ? '-' : ((a-b)>=0?'+':'') + (a-b).toFixed(1) + 'pt'; }
+function renderRivalsMonthly(){
+  const rows = RIVALS.detail.rows;
+  const months = [...new Set(rows.map(r=>r[0]))];
+  const thead = document.querySelector('#rivalsMonthlyTable thead');
+  const tbody = document.querySelector('#rivalsMonthlyTable tbody');
+  thead.innerHTML = ''; tbody.innerHTML = '';
+  const heads = ['実施月','他社 件数','他社 目標入力','他社 実績','他社 達成率','他社 イエナカ','他社 dカード','ルーデンス 達成率','ルーデンス イエナカ','差 達成率','差 イエナカ'];
+  const tr = document.createElement('tr');
+  heads.forEach(h=>{ const th = document.createElement('th'); th.textContent = h; tr.appendChild(th); });
+  thead.appendChild(tr);
+  const notes = [];
+  months.forEach(m=>{
+    const o = rivalsMonthStats(rows, m, 'other');
+    const u = rivalsMonthStats(rows, m, 'ours');
+    const cells = [m, o.events, o.withTarget+'/'+o.events, o.A, fmtPct(o.rate), fmtPct(o.ienaka), fmtPct(o.dcard),
+                   fmtPct(u.rate), fmtPct(u.ienaka), fmtDiff(u.rate, o.rate), fmtDiff(u.ienaka, o.ienaka)];
+    const tr = document.createElement('tr');
+    cells.forEach((v,i)=>{
+      const td = document.createElement('td');
+      td.textContent = v;
+      if(i>0) td.style.textAlign = 'right';
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+    if(o.withTarget < o.events || u.withTarget < u.events){
+      notes.push(m+': 目標未入力 他社'+(o.events-o.withTarget)+'件 / ルーデンス'+(u.events-u.withTarget)+'件');
+    }
+  });
+  document.getElementById('rivalsMonthlyNote').textContent =
+    (notes.length ? '※ '+notes.join(' ／ ')+'（達成率は目標入力分のみ）' : '') ;
+}

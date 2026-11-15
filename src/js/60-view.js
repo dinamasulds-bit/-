@@ -83,6 +83,7 @@ function switchTab(name){
   document.querySelectorAll('.tab-panel').forEach(p=>{ p.classList.toggle('tab-hidden', p.id!=='tab-'+name); });
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
   if(name==='rivals') renderRivals();
+  if(name==='rivalsMonthly') renderRivalsMonthly();
   try{ localStorage.setItem(ACTIVE_TAB_KEY, name); }catch(e){}
 }
 function initTab(){
