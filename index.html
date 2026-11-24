@@ -69,7 +69,7 @@
   .hs-ladder .rung{flex:1;min-width:84px;border-radius:8px;padding:6px 8px;text-align:center;background:#eef1f6;color:var(--muted);}
   .hs-ladder .rung.done{background:var(--ok-bg);color:var(--ok);}
   .hs-ladder .rung .rung-pct{font-weight:800;font-size:13px;display:block;}
-  .hs-ladder .rung .rung-note{font-size:10px;font-weight:600;}
+  .hs-ladder .rung .rung-note{font-size:10px;font-weight:600;white-space:nowrap;}
   /* 集計タブ: 週別カード / ディレクター明細 */
   .wk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:12px;margin:10px 0 6px;}
   .wk-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;
@@ -110,8 +110,9 @@
   .week-chart-row{display:flex;align-items:center;gap:12px;padding:6px 0;}
   .week-chart-row .wlabel{width:34px;font-weight:700;font-size:13px;color:var(--navy);}
   .week-chart-row .bar{flex:1;height:20px;border-radius:6px;}
-  .week-chart-row .bar span{line-height:20px;font-size:11px;}
-  .week-chart-row .wnum{min-width:120px;font-size:12px;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .week-chart-row .bar{display:flex;align-items:center;}
+  .week-chart-row .bar span{display:block;height:20px;line-height:20px;font-size:11px;font-weight:800;text-shadow:0 0 3px rgba(255,255,255,.7);}
+  .week-chart-row .wnum{min-width:120px;font-size:12px;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;}
   .pace-chip-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px;}
   .pace-chip{font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;}
   .pace-chip.ok{background:var(--ok-bg);color:var(--ok);}
